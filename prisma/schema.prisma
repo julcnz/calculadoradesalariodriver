@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Esquema de datos — ver reglas de negocio en CLAUDE.md.
+// Regla 1: WorkLogEntry guarda snapshots (nameSnapshot/amountSnapshot); editar RateType jamás toca registros pasados.
+// Regla 2: millas y horas son nullable; null significa "no registrado", nunca usar 0 por defecto.
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +9,162 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  weekStartDay Int      @default(1) // 0=domingo … 6=sábado; todos los cálculos semanales lo respetan
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  companies   Company[]
+  suggestions CompanySuggestion[]
+  workLogs    WorkLog[]
+  expenses    Expense[]
+  goals       Goal[]
+}
+
+model Company {
+  id        String    @id @default(cuid())
+  userId    String
+  name      String
+  isCustom  Boolean   @default(false) // escrita en "Otra: ___"
+  isActive  Boolean   @default(true) // una activa por usuario; las demás quedan como historial
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routes Route[]
+
+  @@index([userId])
+}
+
+// Texto libre tal cual lo escribió el usuario, sin normalizar,
+// para análisis posterior del administrador.
+model CompanySuggestion {
+  id        String   @id @default(cuid())
+  userId    String
+  rawText   String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Route {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rateTypes RateType[]
+  workLogs  WorkLog[]
+
+  @@index([companyId])
+}
+
+model RateType {
+  id        String   @id @default(cuid())
+  routeId   String
+  name      String // "Tarifa completa", "Tarifa doble", …
+  amount    Decimal  @db.Decimal(10, 2) // valor vigente; los registros usan snapshot
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  route   Route          @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  entries WorkLogEntry[]
+
+  @@index([routeId])
+}
+
+model WorkLog {
+  id            String   @id @default(cuid())
+  userId        String
+  routeId       String
+  date          DateTime @db.Date
+  startTime     String? // "HH:mm" hora local
+  endTime       String? // "HH:mm"; puede ser menor que startTime (turno cruza medianoche)
+  workedMinutes Int? // duración calculada; null = horas no registradas
+  miles         Decimal? @db.Decimal(7, 1) // null = no registrado
+  note          String?
+  totalEarned   Decimal  @db.Decimal(10, 2) // suma de subtotales; se recalcula al editar
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  route   Route          @relation(fields: [routeId], references: [id])
+  entries WorkLogEntry[]
+
+  @@index([userId, date])
+}
+
+model WorkLogEntry {
+  id             String  @id @default(cuid())
+  workLogId      String
+  rateTypeId     String? // referencia informativa; SetNull si la tarifa se borra
+  nameSnapshot   String
+  amountSnapshot Decimal @db.Decimal(10, 2)
+  quantity       Int
+  subtotal       Decimal @db.Decimal(10, 2) // quantity × amountSnapshot
+
+  workLog  WorkLog   @relation(fields: [workLogId], references: [id], onDelete: Cascade)
+  rateType RateType? @relation(fields: [rateTypeId], references: [id], onDelete: SetNull)
+
+  @@index([workLogId])
+}
+
+// ----- Fases futuras (solo esquema, sin UI en Fase 1) -----
+
+model ExpenseCategory {
+  id       String  @id @default(cuid())
+  userId   String? // null = categoría predeterminada global
+  name     String
+  isCustom Boolean @default(false)
+
+  expenses Expense[]
+}
+
+model Expense {
+  id               String   @id @default(cuid())
+  userId           String
+  categoryId       String?
+  originalFreeText String? // texto libre tal cual, sin normalizar
+  amount           Decimal  @db.Decimal(10, 2)
+  date             DateTime @db.Date
+  note             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+}
+
+model Goal {
+  id        String     @id @default(cuid())
+  userId    String
+  period    GoalPeriod
+  amount    Decimal    @db.Decimal(10, 2)
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum GoalPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
 }
