@@ -68,3 +68,9 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
 - Serwist en lugar de next-pwa (sin mantenimiento) para la PWA en App Router.
 - Next.js 16: consultar `node_modules/next/dist/docs/` antes de usar APIs que
   puedan haber cambiado (p. ej. `proxy.ts` reemplaza a `middleware.ts`).
+- Prisma 7: `migrate dev` NO regenera el cliente — correr `npx prisma generate`
+  y reiniciar `npm run dev` tras cambiar el esquema.
+- Auth: sesión JWT (requerida por Credentials), sin adapter de BD. `src/proxy.ts`
+  hace el chequeo optimista; el real está en `(app)/layout.tsx` y las actions.
+- Formularios: Server Actions + `useActionState` (sin react-hook-form);
+  errores de Zod con `z.flattenError(...).fieldErrors`.
