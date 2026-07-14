@@ -1,1 +1,70 @@
 @AGENTS.md
+
+# Calculadora de Salario Driver
+
+PWA para conductores de reparto independientes: registran su trabajo diario
+(paquetes entregados por tipo de tarifa, millas, horas) y la app calcula
+ganancias y métricas con dashboard filtrable. Open source (AGPL-3.0).
+UI en español; código (variables, funciones) en inglés. Preparada para i18n futura.
+
+**Fuente de verdad:** `borrador-proyecto.md` en la raíz (especificación completa).
+
+## Stack
+
+Next.js 16 (App Router) + TypeScript · Tailwind v4 + shadcn/ui (estilo radix-vega,
+CSS variables) · next-themes (claro/oscuro/sistema) · PWA con @serwist/next ·
+PostgreSQL + Prisma 7 (cliente TS generado en `src/generated/prisma`, driver
+adapter `@prisma/adapter-pg`) · Auth.js v5 beta (credenciales + bcryptjs) ·
+Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
+
+## Comandos
+
+- `npm run dev` — servidor de desarrollo (Turbopack)
+- `npm run build` / `npm start` — build y servir producción
+- `npm run lint` / `npm run format` — ESLint / Prettier
+- `npx prisma migrate dev --name <nombre>` — crear/aplicar migración
+- `npx prisma generate` — regenerar cliente (sale a `src/generated/prisma`, no se commitea)
+- `npx prisma studio` — inspeccionar la base de datos
+- BD local: PostgreSQL 17 vía Homebrew (`brew services start postgresql@17`),
+  base `calculadoradriver`. Alternativa para otros devs: `docker compose up -d`.
+
+## Estructura
+
+- `src/app/(auth)/` — login y registro (público)
+- `src/app/(app)/` — dashboard, registros, rutas, empresas, configuración (requiere sesión)
+- `src/components/ui/` — shadcn (no editar a mano salvo necesidad)
+- `src/lib/` — prisma, auth, `validations/` (Zod compartido), `dates/` (semana personalizada)
+- `src/server/actions/` — Server Actions por módulo
+- `prisma/schema.prisma` + `prisma.config.ts` (Prisma 7: el CLI carga .env vía dotenv aquí)
+
+## Reglas de negocio críticas (NO negociables)
+
+1. **Snapshots de tarifas**: `WorkLogEntry` guarda nombre y valor de la tarifa al
+   momento del registro. Editar un `RateType` jamás altera registros pasados.
+2. **Millas/horas opcionales**: si no se ingresan → `null` en BD y "—" o
+   "No registrado" en UI. NUNCA 0 por defecto (contamina promedios $/milla, $/hora).
+3. **Horas**: usuario ingresa inicio y fin; la app calcula duración y soporta
+   turnos que cruzan medianoche.
+4. **Semana de pago personalizada**: el usuario elige el día de inicio de su semana;
+   TODOS los cálculos y gráficos semanales la respetan.
+5. **Registros editables**: los registros pasados se editan y los totales se recalculan.
+6. **Texto libre sin normalizar**: empresas/categorías escritas en "Otra: ___" se
+   guardan tal cual (`CompanySuggestion`, `texto_libre_original` en gastos).
+7. **Multi-empresa**: varias empresas por usuario a lo largo del tiempo, una activa,
+   historial completo, filtros por empresa en dashboard.
+8. **Rutas con tarifas flexibles**: cada ruta pertenece a una empresa y tiene tarifas
+   definidas por el usuario; al crear una ruta se sugieren "Tarifa completa" y "Tarifa doble".
+9. **Flujo guiado**: no se puede crear un registro de trabajo sin al menos una ruta;
+   guiar al usuario a crearla primero.
+10. **Contraseña**: mínimo 8 caracteres, una mayúscula y un número, con confirmación.
+
+## Decisiones tomadas
+
+- Fase 1 (MVP) solamente en UI: auth, empresas/rutas, registro diario, edición,
+  semana personalizada, dashboard básico, PWA + modo oscuro. El esquema Prisma
+  completo (incl. Expense, ExpenseCategory, Goal) se define desde el inicio.
+- bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
+  binarios en Vercel.
+- Serwist en lugar de next-pwa (sin mantenimiento) para la PWA en App Router.
+- Next.js 16: consultar `node_modules/next/dist/docs/` antes de usar APIs que
+  puedan haber cambiado (p. ej. `proxy.ts` reemplaza a `middleware.ts`).
