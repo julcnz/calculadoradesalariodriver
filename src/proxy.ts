@@ -20,8 +20,8 @@ export default auth((req) => {
 });
 
 export const config = {
-  // Excluye API, estáticos y archivos de la PWA.
+  // Excluye API, estáticos y archivos de la PWA (service worker, manifest, iconos).
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|sw\\.js|icons/).*)",
+    "/((?!api|_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|serwist/|~offline|icons/).*)",
   ],
 };

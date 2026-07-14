@@ -65,7 +65,13 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
   completo (incl. Expense, ExpenseCategory, Goal) se define desde el inicio.
 - bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
   binarios en Vercel.
-- Serwist en lugar de next-pwa (sin mantenimiento) para la PWA en App Router.
+- PWA con `@serwist/turbopack` (NO `@serwist/next`: Next 16 compila con
+  Turbopack). SW en `src/app/sw.ts` servido por `src/app/serwist/[path]/route.ts`;
+  registro vía `SerwistProvider` en el layout raíz. Manifest en `src/app/manifest.ts`,
+  iconos en `public/icons/`. Página offline en `/~offline`.
+- Modo oscuro: next-themes (`attribute="class"`) + toggle en el header.
+- El matcher de `src/proxy.ts` debe excluir `serwist/`, `~offline`, `icons/` y
+  `manifest.webmanifest` o la PWA deja de instalar.
 - Next.js 16: consultar `node_modules/next/dist/docs/` antes de usar APIs que
   puedan haber cambiado (p. ej. `proxy.ts` reemplaza a `middleware.ts`).
 - Prisma 7: `migrate dev` NO regenera el cliente — correr `npx prisma generate`

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { AppNavDesktop, AppNavMobile } from "@/components/layout/app-nav";
 import { UserMenu } from "@/components/layout/user-menu";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default async function AppLayout({
   children,
@@ -22,7 +23,10 @@ export default async function AppLayout({
             </Link>
             <AppNavDesktop />
           </div>
-          <UserMenu name={session.user.name} email={session.user.email} />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <UserMenu name={session.user.name} email={session.user.email} />
+          </div>
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-24 md:pb-6">

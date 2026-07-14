@@ -1,7 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { SerwistProvider } from "@serwist/turbopack/react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -22,6 +24,19 @@ export const metadata: Metadata = {
   },
   description:
     "Registra tu trabajo diario como conductor de reparto y calcula tus ganancias, gastos y métricas.",
+  applicationName: "Salario Driver",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Salario Driver",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
 };
 
 export default function RootLayout({
@@ -42,7 +57,11 @@ export default function RootLayout({
         inter.variable
       )}
     >
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <SerwistProvider swUrl="/serwist/sw.js">
+          <ThemeProvider>{children}</ThemeProvider>
+        </SerwistProvider>
+      </body>
     </html>
   );
 }
