@@ -1,0 +1,145 @@
+"use client";
+
+import { useActionState, useMemo, useState } from "react";
+import { createWorkLog } from "@/server/actions/worklogs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { FieldError } from "@/components/auth/field-error";
+import { WorkLogCommonFields } from "@/components/worklogs/worklog-fields";
+import { formatCurrency } from "@/lib/format";
+
+export type RouteWithRates = {
+  id: string;
+  name: string;
+  companyName: string;
+  rates: { id: string; name: string; amount: string }[];
+};
+
+function todayLocalISO(): string {
+  return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD en hora local
+}
+
+export function WorkLogCreateForm({ routes }: { routes: RouteWithRates[] }) {
+  const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
+  const [quantities, setQuantities] = useState<Record<string, string>>({});
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [state, formAction, isPending] = useActionState(createWorkLog, null);
+
+  const route = routes.find((r) => r.id === routeId);
+
+  const total = useMemo(() => {
+    if (!route) return 0;
+    return route.rates.reduce((acc, rate) => {
+      const qty = Number(quantities[rate.id] ?? 0) || 0;
+      return acc + Math.round(Number(rate.amount) * 100) * qty;
+    }, 0);
+  }, [route, quantities]);
+
+  return (
+    <form action={formAction}>
+      <input type="hidden" name="routeId" value={routeId} />
+      <Card>
+        <CardHeader>
+          <CardTitle>Nuevo registro de trabajo</CardTitle>
+          <CardDescription>
+            Registra los paquetes entregados hoy (o la fecha que elijas).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Ruta</Label>
+            <Select value={routeId} onValueChange={setRouteId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Elige una ruta" />
+              </SelectTrigger>
+              <SelectContent>
+                {routes.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name} · {r.companyName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FieldError errors={state?.errors?.routeId} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Paquetes por tarifa</Label>
+            <div className="space-y-2">
+              {route?.rates.map((rate) => (
+                <div key={rate.id} className="flex items-center gap-3">
+                  <input type="hidden" name="rateTypeId" value={rate.id} />
+                  <div className="flex-1">
+                    <p className="text-sm">{rate.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(rate.amount)} c/u
+                    </p>
+                  </div>
+                  <Input
+                    name="quantity"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={quantities[rate.id] ?? ""}
+                    onChange={(e) =>
+                      setQuantities((prev) => ({
+                        ...prev,
+                        [rate.id]: e.target.value,
+                      }))
+                    }
+                    className="w-24 text-right"
+                  />
+                </div>
+              ))}
+            </div>
+            <FieldError errors={state?.errors?.quantities} />
+          </div>
+
+          <Separator />
+
+          <WorkLogCommonFields
+            defaults={{ date: todayLocalISO(), miles: "", note: "" }}
+            startTime={startTime}
+            endTime={endTime}
+            onStartTimeChange={setStartTime}
+            onEndTimeChange={setEndTime}
+            errors={state?.errors}
+          />
+
+          {state?.message && (
+            <p className="text-sm text-destructive">{state.message}</p>
+          )}
+        </CardContent>
+        <CardFooter className="mt-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Total del día</p>
+            <p className="text-xl font-bold">{formatCurrency(total / 100)}</p>
+          </div>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Guardando…" : "Guardar registro"}
+          </Button>
+        </CardFooter>
+      </Card>
+    </form>
+  );
+}
