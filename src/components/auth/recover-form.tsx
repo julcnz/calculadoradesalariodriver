@@ -41,6 +41,11 @@ export function RecoverForm() {
       ) : (
         <form action={formAction}>
           <CardContent className="space-y-4">
+            {state?.message && (
+              <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                {state.message}
+              </p>
+            )}
             <div className="space-y-2">
               <Label htmlFor="recover-email">Email</Label>
               <Input

@@ -11,6 +11,7 @@ import {
   requestResetSchema,
   resetPasswordSchema,
 } from "@/lib/validations/password-reset";
+import { clientIp, rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 export type ResetFormState = {
   errors?: Record<string, string[]>;
@@ -36,6 +37,10 @@ export async function requestPasswordReset(
   _prevState: ResetFormState,
   formData: FormData
 ): Promise<ResetFormState> {
+  if (!rateLimit(`reset:${await clientIp()}`, 5, 60 * 60 * 1000)) {
+    return { message: RATE_LIMIT_MESSAGE };
+  }
+
   const parsed = requestResetSchema.safeParse({
     email: formData.get("email"),
   });

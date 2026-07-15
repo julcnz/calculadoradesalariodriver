@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
 import { loginSchema, registerSchema } from "@/lib/validations/auth";
+import { clientIp, rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
 
 export async function logoutUser() {
   await signOut({ redirectTo: "/login" });
@@ -20,6 +21,10 @@ export async function registerUser(
   _prevState: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  if (!rateLimit(`register:${await clientIp()}`, 5, 60 * 60 * 1000)) {
+    return { message: RATE_LIMIT_MESSAGE };
+  }
+
   const parsed = registerSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
@@ -59,6 +64,10 @@ export async function loginUser(
   _prevState: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
+  if (!rateLimit(`login:${await clientIp()}`, 10, 15 * 60 * 1000)) {
+    return { message: RATE_LIMIT_MESSAGE };
+  }
+
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),

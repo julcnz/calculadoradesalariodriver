@@ -68,9 +68,25 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
   categoría propia del usuario y guarda el texto crudo en
   Expense.originalFreeText (regla 6). Los gastos NO se filtran por empresa.
 - Dashboard: selector de período (día/semana/mes/trimestre/año + navegación
-  ← →) vía searchParams `periodo` y `fecha`; tarjetas Ingresos/Gastos/Neto.
-  Helpers de período en src/lib/dates/week.ts (getPeriodRange/shiftPeriod).
-  Todo cálculo monetario agrega en centavos (Math.round(x*100)).
+  ← →) vía searchParams `periodo` y `fecha`; tarjetas Ingresos/Gastos/Neto/
+  Promedios. Helpers de período en src/lib/dates/week.ts (getPeriodRange/
+  shiftPeriod). Todo cálculo monetario agrega en centavos (Math.round(x*100)).
+- Zona horaria: cookie `tz` (IANA) mantenida por <TimezoneSync/> en el layout;
+  el servidor calcula "hoy" con todayForUser() (src/lib/dates/server.ts).
+  NUNCA usar todayAsBusinessDate() en código de servidor (en Vercel es UTC).
+- Metas: modelo Goal, una por período (DAILY/WEEKLY/MONTHLY/YEARLY), se editan
+  en /configuracion; barra de progreso sobre Ingresos en el dashboard.
+- Promedios $/h y $/milla: solo con registros que SÍ tienen horas/millas
+  (regla 2) — cada promedio usa el ingreso de sus propios registros.
+- Guía de inicio en /guia (checklist con progreso real), enlazada desde
+  /configuracion. No se muestra automáticamente.
+- Rate limiting por IP en memoria (src/lib/rate-limit.ts): login 10/15 min,
+  registro y recuperación 5/h. En serverless es por instancia (parcial).
+- Sesiones huérfanas (usuario borrado/suspendido): el layout de (app)
+  redirige a /api/salir para LIMPIAR la cookie — redirigir a /login directo
+  crea un bucle infinito con el proxy.
+- CI: .github/workflows/ci.yml (lint + tsc + build). El build NO necesita
+  BD (verificado con PostgreSQL apagado).
 - bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
   binarios en Vercel.
 - PWA con `@serwist/turbopack` (NO `@serwist/next`: Next 16 compila con
