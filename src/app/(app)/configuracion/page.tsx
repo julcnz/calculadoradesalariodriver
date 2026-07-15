@@ -11,16 +11,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { WeekStartSelect } from "@/components/settings/week-start-select";
+import { GoalsForm } from "@/components/settings/goals-form";
 
 export const metadata: Metadata = { title: "Configuración" };
 
 export default async function SettingsPage() {
   const userId = await requireUserId();
 
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { id: userId },
-    select: { email: true, name: true, weekStartDay: true },
-  });
+  const [user, goals] = await Promise.all([
+    prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true, name: true, weekStartDay: true },
+    }),
+    prisma.goal.findMany({ where: { userId } }),
+  ]);
+
+  const goalAmount = (period: string) =>
+    goals.find((g) => g.period === period)?.amount.toFixed(2) ?? "";
 
   return (
     <div className="space-y-6">
@@ -41,6 +48,41 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <WeekStartSelect current={user.weekStartDay} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Guía de inicio</CardTitle>
+          <CardDescription>
+            ¿Empezando o quieres repasar la configuración? La guía te lleva
+            paso a paso y marca lo que ya tienes listo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link href="/guia">Abrir la guía</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Metas de ganancias</CardTitle>
+          <CardDescription>
+            Define cuánto quieres ganar por período y sigue tu progreso en el
+            dashboard.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <GoalsForm
+            defaults={{
+              daily: goalAmount("DAILY"),
+              weekly: goalAmount("WEEKLY"),
+              monthly: goalAmount("MONTHLY"),
+              yearly: goalAmount("YEARLY"),
+            }}
+          />
         </CardContent>
       </Card>
 

@@ -6,13 +6,15 @@ import { requireUserId } from "@/lib/session";
 import {
   getPeriodRange,
   isPeriodType,
-  todayAsBusinessDate,
   WEEKDAYS_ES,
   type PeriodType,
 } from "@/lib/dates/week";
-import { formatCurrency } from "@/lib/format";
+import { todayForUser } from "@/lib/dates/server";
+import { formatCurrency, formatMinutes } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import type { GoalPeriod } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
   Card,
   CardContent,
@@ -39,10 +41,12 @@ export default async function DashboardPage({
 
   const periodo: PeriodType =
     params.periodo && isPeriodType(params.periodo) ? params.periodo : "semana";
+  // "Hoy" en la zona horaria del navegador del usuario (cookie tz).
+  const today = await todayForUser();
   const date =
     params.fecha && /^\d{4}-\d{2}-\d{2}$/.test(params.fecha)
       ? new Date(params.fecha)
-      : todayAsBusinessDate();
+      : today;
 
   const [user, companies] = await Promise.all([
     prisma.user.findUniqueOrThrow({
@@ -96,6 +100,55 @@ export default async function DashboardPage({
   );
   const netCents = incomeCents - expenseCents;
 
+  // Meta del período seleccionado (el trimestre no tiene meta propia).
+  const GOAL_BY_PERIOD: Partial<Record<PeriodType, GoalPeriod>> = {
+    dia: "DAILY",
+    semana: "WEEKLY",
+    mes: "MONTHLY",
+    ano: "YEARLY",
+  };
+  const goalPeriod = GOAL_BY_PERIOD[periodo];
+  const goal = goalPeriod
+    ? await prisma.goal.findFirst({
+        where: { userId, period: goalPeriod, isActive: true },
+      })
+    : null;
+  const goalCents = goal ? Math.round(Number(goal.amount) * 100) : null;
+  const goalPct =
+    goalCents && goalCents > 0
+      ? Math.min(100, Math.round((incomeCents / goalCents) * 100))
+      : null;
+
+  // Promedios $/hora y $/milla — regla 2: solo cuentan los registros que SÍ
+  // tienen horas/millas; los demás no contaminan el promedio.
+  const logsWithMinutes = logs.filter((log) => log.workedMinutes !== null);
+  const totalMinutes = logsWithMinutes.reduce(
+    (acc, log) => acc + (log.workedMinutes ?? 0),
+    0
+  );
+  const incomeCentsWithMinutes = logsWithMinutes.reduce(
+    (acc, log) => acc + Math.round(Number(log.totalEarned) * 100),
+    0
+  );
+  const perHourCents =
+    totalMinutes > 0
+      ? Math.round(incomeCentsWithMinutes / (totalMinutes / 60))
+      : null;
+
+  const logsWithMiles = logs.filter((log) => log.miles !== null);
+  const totalMilesTenths = logsWithMiles.reduce(
+    (acc, log) => acc + Math.round(Number(log.miles) * 10),
+    0
+  );
+  const incomeCentsWithMiles = logsWithMiles.reduce(
+    (acc, log) => acc + Math.round(Number(log.totalEarned) * 100),
+    0
+  );
+  const perMileCents =
+    totalMilesTenths > 0
+      ? Math.round(incomeCentsWithMiles / (totalMilesTenths / 10))
+      : null;
+
   // Gráfico: ganancias por ruta dentro del período.
   const byRoute = new Map<string, { total: number; dates: Set<string> }>();
   for (const log of logs) {
@@ -139,11 +192,12 @@ export default async function DashboardPage({
       <PeriodSelector
         periodo={periodo}
         date={date}
+        today={today}
         weekStartDay={user.weekStartDay}
         empresa={companyId}
       />
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Ingresos</CardDescription>
@@ -151,13 +205,22 @@ export default async function DashboardPage({
               {formatCurrency(incomeCents / 100)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
+          <CardContent className="space-y-2 text-xs text-muted-foreground">
             <p>
               {packages} paquetes ·{" "}
               {daysWorked === 1
                 ? "1 día trabajado"
                 : `${daysWorked} días trabajados`}
             </p>
+            {goalCents !== null && goalPct !== null && (
+              <div className="space-y-1">
+                <Progress value={goalPct} aria-label="Progreso de la meta" />
+                <p>
+                  Meta: {formatCurrency(goalCents / 100)} · {goalPct}%
+                  {goalPct >= 100 && " 🎉"}
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -195,6 +258,29 @@ export default async function DashboardPage({
               {incomeCents > 0
                 ? `Margen: ${Math.round((netCents / incomeCents) * 100)}%`
                 : "Ingresos − gastos del período"}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Promedios</CardDescription>
+            <CardTitle className="text-2xl">
+              {perHourCents !== null
+                ? `${formatCurrency(perHourCents / 100)}/h`
+                : "—/h"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-xs text-muted-foreground">
+            <p>
+              {perMileCents !== null
+                ? `${formatCurrency(perMileCents / 100)}/milla`
+                : "—/milla (sin millas registradas)"}
+            </p>
+            <p>
+              {totalMinutes > 0
+                ? formatMinutes(totalMinutes)
+                : "Horas no registradas"}
+              {totalMilesTenths > 0 && ` · ${totalMilesTenths / 10} mi`}
             </p>
           </CardContent>
         </Card>

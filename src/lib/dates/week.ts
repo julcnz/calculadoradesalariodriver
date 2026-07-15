@@ -22,8 +22,20 @@ export function addDays(date: Date, days: number): Date {
 }
 
 // "Hoy" del usuario convertido a fecha de negocio (medianoche UTC).
+// OJO: sin zona horaria usa la del proceso (en Vercel, UTC). En código de
+// servidor usar todayForUser() de src/lib/dates/server.ts, que lee la zona
+// del navegador desde la cookie `tz`.
 export function todayAsBusinessDate(): Date {
   return new Date(new Date().toLocaleDateString("en-CA"));
+}
+
+export function todayInTimeZone(timeZone?: string): Date {
+  try {
+    return new Date(new Date().toLocaleDateString("en-CA", { timeZone }));
+  } catch {
+    // Zona inválida en la cookie → caemos a la del servidor.
+    return todayAsBusinessDate();
+  }
 }
 
 export function startOfWeek(date: Date, weekStartDay: number): Date {

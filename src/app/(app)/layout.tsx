@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppNavDesktop, AppNavMobile } from "@/components/layout/app-nav";
+import { TimezoneSync } from "@/components/layout/timezone-sync";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
@@ -27,7 +28,9 @@ export default async function AppLayout({
     },
   });
   if (!user || user.suspendedAt) {
-    redirect("/login");
+    // Usuario borrado o suspendido: hay que limpiar la cookie de sesión,
+    // no solo redirigir (el proxy nos devolvería aquí en bucle).
+    redirect("/api/salir");
   }
 
   const avatarUrl = user.avatarUpdatedAt
@@ -36,6 +39,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <TimezoneSync />
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
           <div className="flex items-center gap-6">

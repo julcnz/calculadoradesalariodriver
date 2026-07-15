@@ -4,7 +4,6 @@ import {
   getPeriodRange,
   shiftPeriod,
   toDateParam,
-  todayAsBusinessDate,
   type PeriodType,
 } from "@/lib/dates/week";
 import { formatDate } from "@/lib/format";
@@ -56,16 +55,17 @@ function rangeLabel(periodo: PeriodType, date: Date, weekStartDay: number) {
 export function PeriodSelector({
   periodo,
   date,
+  today,
   weekStartDay,
   empresa,
 }: {
   periodo: PeriodType;
   date: Date;
+  today: Date;
   weekStartDay: number;
   empresa?: string;
 }) {
   const fecha = toDateParam(date);
-  const today = todayAsBusinessDate();
   const { start, end } = getPeriodRange(periodo, date, weekStartDay);
   const isCurrentPeriod = today >= start && today <= end;
 
