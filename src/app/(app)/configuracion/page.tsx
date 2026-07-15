@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -45,16 +47,24 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Cuenta</CardTitle>
+          <CardDescription>
+            Foto de perfil, datos personales y suspensión de cuenta.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-1 text-sm">
-          <p>
-            <span className="text-muted-foreground">Nombre: </span>
-            {user.name ?? "—"}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Email: </span>
-            {user.email}
-          </p>
+        <CardContent className="space-y-3">
+          <div className="space-y-1 text-sm">
+            <p>
+              <span className="text-muted-foreground">Nombre: </span>
+              {user.name ?? "—"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Email: </span>
+              {user.email}
+            </p>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/perfil">Editar perfil</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

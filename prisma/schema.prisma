@@ -12,13 +12,17 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  weekStartDay Int      @default(1) // 0=domingo … 6=sábado; todos los cálculos semanales lo respetan
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String?
+  weekStartDay    Int       @default(1) // 0=domingo … 6=sábado; todos los cálculos semanales lo respetan
+  avatar          Bytes? // foto de perfil reescalada a 256px en el cliente
+  avatarMimeType  String?
+  avatarUpdatedAt DateTime?
+  suspendedAt     DateTime? // cuenta pausada; se reactiva al iniciar sesión
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   companies   Company[]
   suggestions CompanySuggestion[]

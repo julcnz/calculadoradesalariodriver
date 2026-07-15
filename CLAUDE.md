@@ -72,6 +72,12 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
 - Modo oscuro: next-themes (`attribute="class"`) + toggle en el header.
 - El matcher de `src/proxy.ts` debe excluir `serwist/`, `~offline`, `icons/` y
   `manifest.webmanifest` o la PWA deja de instalar.
+- Perfil (`/perfil`): foto guardada como Bytes en la BD (recorte/reescalado a
+  256px en el cliente, ~3-30 KB), servida por `/api/avatar/[userId]` con caché
+  y `?v=timestamp`. El layout de (app) lee al usuario fresco de la BD: refleja
+  ediciones al instante y expulsa sesiones suspendidas en cualquier dispositivo.
+- Suspensión de cuenta: `suspendedAt` en User; NO borra datos, cierra sesión y
+  se reactiva automáticamente al volver a iniciar sesión (estilo "desactivar").
 - Next.js 16: consultar `node_modules/next/dist/docs/` antes de usar APIs que
   puedan haber cambiado (p. ej. `proxy.ts` reemplaza a `middleware.ts`).
 - Prisma 7: `migrate dev` NO regenera el cliente — correr `npx prisma generate`

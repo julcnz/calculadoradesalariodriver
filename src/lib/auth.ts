@@ -41,6 +41,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!passwordMatches) return null;
 
+        // Una cuenta suspendida se reactiva al iniciar sesión con éxito.
+        if (user.suspendedAt) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { suspendedAt: null },
+          });
+        }
+
         return { id: user.id, email: user.email, name: user.name };
       },
     }),

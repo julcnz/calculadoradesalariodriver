@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { AppNavDesktop, AppNavMobile } from "@/components/layout/app-nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -12,6 +13,26 @@ export default async function AppLayout({
   if (!session?.user) {
     redirect("/login");
   }
+
+  // Datos frescos de la BD: refleja ediciones de perfil al instante y
+  // expulsa sesiones de cuentas suspendidas en cualquier dispositivo.
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      avatarUpdatedAt: true,
+      suspendedAt: true,
+    },
+  });
+  if (!user || user.suspendedAt) {
+    redirect("/login");
+  }
+
+  const avatarUrl = user.avatarUpdatedAt
+    ? `/api/avatar/${user.id}?v=${user.avatarUpdatedAt.getTime()}`
+    : null;
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -25,7 +46,11 @@ export default async function AppLayout({
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <UserMenu name={session.user.name} email={session.user.email} />
+            <UserMenu
+              name={user.name}
+              email={user.email}
+              avatarUrl={avatarUrl}
+            />
           </div>
         </div>
       </header>
