@@ -63,6 +63,14 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
 - Fase 1 (MVP) solamente en UI: auth, empresas/rutas, registro diario, edición,
   semana personalizada, dashboard básico, PWA + modo oscuro. El esquema Prisma
   completo (incl. Expense, ExpenseCategory, Goal) se define desde el inicio.
+- Gastos (/gastos): categorías predefinidas como filas GLOBALES en
+  ExpenseCategory (userId null, se crean bajo demanda); "Otra: ___" crea
+  categoría propia del usuario y guarda el texto crudo en
+  Expense.originalFreeText (regla 6). Los gastos NO se filtran por empresa.
+- Dashboard: selector de período (día/semana/mes/trimestre/año + navegación
+  ← →) vía searchParams `periodo` y `fecha`; tarjetas Ingresos/Gastos/Neto.
+  Helpers de período en src/lib/dates/week.ts (getPeriodRange/shiftPeriod).
+  Todo cálculo monetario agrega en centavos (Math.round(x*100)).
 - bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
   binarios en Vercel.
 - PWA con `@serwist/turbopack` (NO `@serwist/next`: Next 16 compila con

@@ -42,3 +42,93 @@ export function startOfMonth(date: Date): Date {
 export function endOfMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
 }
+
+// ----- Períodos del dashboard (día/semana/mes/trimestre/año) -----
+
+export const PERIOD_TYPES = [
+  "dia",
+  "semana",
+  "mes",
+  "trimestre",
+  "ano",
+] as const;
+
+export type PeriodType = (typeof PERIOD_TYPES)[number];
+
+export function isPeriodType(value: string): value is PeriodType {
+  return (PERIOD_TYPES as readonly string[]).includes(value);
+}
+
+export function startOfQuarter(date: Date): Date {
+  const quarterMonth = Math.floor(date.getUTCMonth() / 3) * 3;
+  return new Date(Date.UTC(date.getUTCFullYear(), quarterMonth, 1));
+}
+
+export function endOfQuarter(date: Date): Date {
+  const quarterMonth = Math.floor(date.getUTCMonth() / 3) * 3;
+  return new Date(Date.UTC(date.getUTCFullYear(), quarterMonth + 3, 0));
+}
+
+export function startOfYear(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+}
+
+export function endOfYear(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), 11, 31));
+}
+
+// Rango [inicio, fin] del período que contiene a `date`.
+// La semana respeta weekStartDay (regla 4).
+export function getPeriodRange(
+  type: PeriodType,
+  date: Date,
+  weekStartDay: number
+): { start: Date; end: Date } {
+  switch (type) {
+    case "dia":
+      return { start: date, end: date };
+    case "semana":
+      return {
+        start: startOfWeek(date, weekStartDay),
+        end: endOfWeek(date, weekStartDay),
+      };
+    case "mes":
+      return { start: startOfMonth(date), end: endOfMonth(date) };
+    case "trimestre":
+      return { start: startOfQuarter(date), end: endOfQuarter(date) };
+    case "ano":
+      return { start: startOfYear(date), end: endOfYear(date) };
+  }
+}
+
+// Una fecha dentro del período anterior/siguiente, para navegar con ← →.
+export function shiftPeriod(
+  type: PeriodType,
+  date: Date,
+  direction: 1 | -1
+): Date {
+  switch (type) {
+    case "dia":
+      return addDays(date, direction);
+    case "semana":
+      return addDays(date, 7 * direction);
+    case "mes":
+      return new Date(
+        Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + direction, 1)
+      );
+    case "trimestre":
+      return new Date(
+        Date.UTC(
+          date.getUTCFullYear(),
+          Math.floor(date.getUTCMonth() / 3) * 3 + 3 * direction,
+          1
+        )
+      );
+    case "ano":
+      return new Date(Date.UTC(date.getUTCFullYear() + direction, 0, 1));
+  }
+}
+
+export function toDateParam(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
