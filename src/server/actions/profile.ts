@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import { signOut } from "@/lib/auth";
 import {
   avatarDataUrlSchema,
+  changePasswordSchema,
   updateProfileSchema,
 } from "@/lib/validations/profile";
 
@@ -87,6 +89,45 @@ export async function removeAvatar() {
 
   revalidatePath("/perfil");
   revalidatePath("/", "layout");
+}
+
+export async function changePassword(
+  _prevState: ProfileFormState,
+  formData: FormData
+): Promise<ProfileFormState> {
+  const userId = await requireUserId();
+
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: formData.get("currentPassword"),
+    newPassword: formData.get("newPassword"),
+    confirmPassword: formData.get("confirmPassword"),
+  });
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { passwordHash: true },
+  });
+
+  const currentMatches = await bcrypt.compare(
+    parsed.data.currentPassword,
+    user.passwordHash
+  );
+  if (!currentMatches) {
+    return {
+      errors: { currentPassword: ["La contraseña actual no es correcta"] },
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash },
+  });
+
+  return { success: true };
 }
 
 // La cuenta queda pausada (no se borra nada) y la sesión se cierra.

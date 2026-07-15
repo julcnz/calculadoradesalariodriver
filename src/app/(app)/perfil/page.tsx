@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AvatarUploader } from "@/components/profile/avatar-uploader";
+import { PasswordForm } from "@/components/profile/password-form";
 import { ProfileForm } from "@/components/profile/profile-form";
 import { SuspendAccountButton } from "@/components/profile/suspend-account";
 
@@ -50,6 +51,19 @@ export default async function ProfilePage() {
         </CardHeader>
         <CardContent>
           <ProfileForm name={user.name} email={user.email} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contraseña</CardTitle>
+          <CardDescription>
+            Si olvidas tu contraseña, podrás recuperarla desde “¿Olvidaste tu
+            contraseña?” en la pantalla de inicio de sesión.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PasswordForm />
         </CardContent>
       </Card>
 

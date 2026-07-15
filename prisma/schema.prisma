@@ -29,6 +29,22 @@ model User {
   workLogs    WorkLog[]
   expenses    Expense[]
   goals       Goal[]
+  resetTokens PasswordResetToken[]
+}
+
+// Token de un solo uso para restablecer contraseña. Se guarda el hash
+// sha256 del token (nunca el token en claro) y expira en 1 hora.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model Company {

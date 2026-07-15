@@ -1,4 +1,16 @@
 import { z } from "zod";
+import { passwordSchema } from "@/lib/validations/auth";
+
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Ingresa tu contraseña actual"),
+    newPassword: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+  });
 
 export const updateProfileSchema = z.object({
   name: z

@@ -78,6 +78,12 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
   ediciones al instante y expulsa sesiones suspendidas en cualquier dispositivo.
 - Suspensión de cuenta: `suspendedAt` en User; NO borra datos, cierra sesión y
   se reactiva automáticamente al volver a iniciar sesión (estilo "desactivar").
+- Contraseñas: cambio desde /perfil (verifica la actual) y recuperación por
+  correo en /recuperar → /restablecer/[token]. Token sha256 de un solo uso,
+  expira en 1 h; respuesta genérica anti-enumeración. Correos vía Resend
+  (`RESEND_API_KEY` + `EMAIL_FROM`); sin API key se imprimen en la consola
+  del servidor (src/lib/email.ts). /recuperar y /restablecer son públicas
+  en el proxy.
 - Next.js 16: consultar `node_modules/next/dist/docs/` antes de usar APIs que
   puedan haber cambiado (p. ej. `proxy.ts` reemplaza a `middleware.ts`).
 - Prisma 7: `migrate dev` NO regenera el cliente — correr `npx prisma generate`

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { FieldError } from "@/components/auth/field-error";
 
-export function LoginForm() {
+export function LoginForm({ notice }: { notice?: string }) {
   const [state, formAction, isPending] = useActionState(loginUser, null);
 
   return (
@@ -29,6 +29,9 @@ export function LoginForm() {
       </CardHeader>
       <form action={formAction}>
         <CardContent className="space-y-4">
+          {notice && !state?.message && (
+            <p className="rounded-md bg-muted p-3 text-sm">{notice}</p>
+          )}
           {state?.message && (
             <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
               {state.message}
@@ -47,7 +50,15 @@ export function LoginForm() {
             <FieldError errors={state?.errors?.email} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Contraseña</Label>
+              <Link
+                href="/recuperar"
+                className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+              >
+                ¿La olvidaste?
+              </Link>
+            </div>
             <Input
               id="password"
               name="password"

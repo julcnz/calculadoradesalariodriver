@@ -37,11 +37,13 @@ Copia la plantilla y rellena los valores (cada variable está documentada dentro
 cp .env.example .env
 ```
 
-| Variable       | Descripción                                                        |
-| -------------- | ------------------------------------------------------------------ |
-| `DATABASE_URL` | Connection string de PostgreSQL                                     |
-| `AUTH_SECRET`  | Secreto de sesión. Genera uno con `openssl rand -base64 32`          |
-| `AUTH_URL`     | (Opcional) URL pública de la app; en local se autodetecta            |
+| Variable         | Descripción                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------- |
+| `DATABASE_URL`   | Connection string de PostgreSQL                                                           |
+| `AUTH_SECRET`    | Secreto de sesión. Genera uno con `openssl rand -base64 32`                                |
+| `AUTH_URL`       | (Opcional) URL pública de la app; en local se autodetecta                                  |
+| `RESEND_API_KEY` | (Opcional) API key de [Resend](https://resend.com) para los correos de recuperación de contraseña. Sin ella, los correos se imprimen en la consola del servidor (útil en desarrollo) |
+| `EMAIL_FROM`     | (Opcional) Remitente de los correos, ej. `Salario Driver <no-reply@tudominio.com>`         |
 
 ### 2. Base de datos
 
