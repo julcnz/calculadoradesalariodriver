@@ -6,6 +6,7 @@ import {
   Building2,
   ClipboardList,
   LayoutDashboard,
+  Receipt,
   Route,
   Settings,
 } from "lucide-react";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
   { href: "/registros", label: "Registros", icon: ClipboardList },
+  { href: "/gastos", label: "Gastos", icon: Receipt },
   { href: "/rutas", label: "Rutas", icon: Route },
   { href: "/empresas", label: "Empresas", icon: Building2 },
   { href: "/configuracion", label: "Ajustes", icon: Settings },
@@ -45,7 +47,7 @@ export function AppNavMobile() {
   const pathname = usePathname();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden">
-      <div className="grid grid-cols-5">
+      <div className="grid grid-cols-6">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
