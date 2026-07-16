@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
+import { CloudOff } from "lucide-react";
 import { createWorkLog } from "@/server/actions/worklogs";
+import { enqueueWorkLog } from "@/lib/offline-queue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +44,7 @@ export function WorkLogCreateForm({ routes }: { routes: RouteWithRates[] }) {
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [queuedOffline, setQueuedOffline] = useState(false);
   const [state, formAction, isPending] = useActionState(createWorkLog, null);
 
   const route = routes.find((r) => r.id === routeId);
@@ -53,8 +57,45 @@ export function WorkLogCreateForm({ routes }: { routes: RouteWithRates[] }) {
     }, 0);
   }, [route, quantities]);
 
+  // Sin conexión: el registro se guarda en el dispositivo y se envía
+  // automáticamente al reconectar (ver <OfflineSyncer/>).
+  function handleAction(formData: FormData) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      enqueueWorkLog(formData);
+      setQueuedOffline(true);
+      return;
+    }
+    formAction(formData);
+  }
+
+  if (queuedOffline) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CloudOff className="size-5" />
+            Guardado sin conexión
+          </CardTitle>
+          <CardDescription>
+            No hay internet ahora mismo, pero tu registro quedó guardado en
+            este dispositivo y se enviará automáticamente cuando vuelva la
+            conexión. No cierres sesión mientras tanto.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex gap-2">
+          <Button type="button" onClick={() => setQueuedOffline(false)}>
+            Registrar otro día
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/dashboard">Ir al dashboard</Link>
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
+
   return (
-    <form action={formAction}>
+    <form action={handleAction}>
       <input type="hidden" name="routeId" value={routeId} />
       <Card>
         <CardHeader>

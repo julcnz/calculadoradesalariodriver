@@ -108,6 +108,21 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
   /registros y /gastos; searchParams validados en el servidor.
 - Dashboard: comparativa vs período anterior, racha de días consecutivos,
   mejor día/semana históricos y desglose de gastos por categoría.
+- Deducción por milla: User.mileageRate (default 0.70, editable en
+  /configuracion); el dashboard muestra millas del período × tarifa.
+- Proyección: solo período EN CURSO (nunca "día"): ingresos × díasTotales /
+  díasTranscurridos.
+- Calendario de constancia: ActivityCalendar (server component, 12 semanas,
+  intensidad por ganancia diaria, respeta weekStartDay) dentro de la card
+  Constancia junto a racha/récords.
+- PWA: shortcuts del manifest → /registros/nuevo y /gastos/nuevo.
+- Modo offline: si no hay conexión al guardar un registro, se encola en
+  localStorage (src/lib/offline-queue.ts) y <OfflineSyncer/> lo reenvía al
+  reconectar vía syncOfflineWorkLog (persistWorkLog compartido, sin redirect).
+  Anti-duplicados: candado a nivel de módulo + retirar de la cola ANTES de
+  enviar (re-encolando si falla la red). El aviso de sincronización persiste
+  al router.refresh() vía sessionStorage. OJO: en dev, el HMR puede dejar
+  listeners viejos y duplicar envíos — probar siempre con recarga en frío.
 - bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
   binarios en Vercel.
 - PWA con `@serwist/turbopack` (NO `@serwist/next`: Next 16 compila con

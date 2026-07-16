@@ -69,12 +69,12 @@ function resolveMiles(data: {
   };
 }
 
-export async function createWorkLog(
-  _prevState: WorkLogFormState,
+// Núcleo de creación, sin redirect: lo usan el formulario normal y la
+// sincronización offline. Devuelve null si todo salió bien.
+async function persistWorkLog(
+  userId: string,
   formData: FormData
 ): Promise<WorkLogFormState> {
-  const userId = await requireUserId();
-
   const parsed = createWorkLogSchema.safeParse({
     routeId: formData.get("routeId"),
     date: formData.get("date"),
@@ -145,9 +145,41 @@ export async function createWorkLog(
     },
   });
 
+  return null;
+}
+
+export async function createWorkLog(
+  _prevState: WorkLogFormState,
+  formData: FormData
+): Promise<WorkLogFormState> {
+  const userId = await requireUserId();
+
+  const result = await persistWorkLog(userId, formData);
+  if (result) return result;
+
   revalidatePath("/registros");
   revalidatePath("/dashboard");
   redirect("/registros");
+}
+
+// Reenvía un registro que quedó guardado en el dispositivo sin conexión.
+// `discard` indica que los datos son inválidos y no tiene sentido reintentar.
+export async function syncOfflineWorkLog(
+  pairs: [string, string][]
+): Promise<{ ok: boolean; discard?: boolean }> {
+  const userId = await requireUserId();
+
+  const formData = new FormData();
+  for (const [key, value] of pairs) {
+    formData.append(key, value);
+  }
+
+  const result = await persistWorkLog(userId, formData);
+  if (result) return { ok: false, discard: true };
+
+  revalidatePath("/registros");
+  revalidatePath("/dashboard");
+  return { ok: true };
 }
 
 function parseEntriesFromForm(formData: FormData) {

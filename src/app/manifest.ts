@@ -11,6 +11,18 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#ffffff",
     theme_color: "#0a0a0a",
     lang: "es",
+    shortcuts: [
+      {
+        name: "Nuevo registro",
+        url: "/registros/nuevo",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+      },
+      {
+        name: "Nuevo gasto",
+        url: "/gastos/nuevo",
+        icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }],
+      },
+    ],
     icons: [
       {
         src: "/icons/icon-192.png",
