@@ -30,6 +30,13 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
 
 ## Estructura
 
+- `src/app/page.tsx` — landing pública en `/` (sin sesión muestra la landing;
+  con sesión redirige a /dashboard — chequeo en proxy Y en la página). Mockup
+  del dashboard con datos ficticios en `src/components/landing/`. OG image en
+  `public/og.png`; `metadataBase` sale de AUTH_URL. El enlace a GitHub es un
+  placeholder (const GITHUB_URL) hasta publicar el repo. Diseño guiado por la
+  skill de plugin `ui-ux-pro-max` (estilo "exaggerated minimalism", tokens del
+  tema existente, acento esmeralda solo en cifras de dinero).
 - `src/app/(auth)/` — login y registro (público)
 - `src/app/(app)/` — dashboard, registros, rutas, empresas, configuración (requiere sesión)
 - `src/components/ui/` — shadcn (no editar a mano salvo necesidad)

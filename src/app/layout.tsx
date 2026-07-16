@@ -18,6 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.AUTH_URL ?? "http://localhost:3000"),
   title: {
     default: "Calculadora de Salario Driver",
     template: "%s · Calculadora de Salario Driver",

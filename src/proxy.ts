@@ -6,7 +6,9 @@ import { auth } from "@/lib/auth";
 export default auth((req) => {
   const { nextUrl } = req;
   const isLoggedIn = !!req.auth;
+  // La raíz es la landing pública: visible sin sesión; con sesión → dashboard.
   const isAuthPage =
+    nextUrl.pathname === "/" ||
     nextUrl.pathname === "/login" ||
     nextUrl.pathname === "/registro" ||
     nextUrl.pathname === "/recuperar" ||
