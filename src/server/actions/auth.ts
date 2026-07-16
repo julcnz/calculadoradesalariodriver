@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/lib/auth";
 import { loginSchema, registerSchema } from "@/lib/validations/auth";
 import { clientIp, rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+import { issueEmailVerification } from "@/lib/email-verification";
+import { resolveOrigin } from "@/lib/origin";
 
 export async function logoutUser() {
   await signOut({ redirectTo: "/login" });
@@ -43,13 +45,16 @@ export async function registerUser(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       email,
       passwordHash,
       name: parsed.data.name || null,
     },
   });
+
+  // Correo de verificación (no bloquea el registro si falla el envío).
+  await issueEmailVerification(user.id, email, await resolveOrigin());
 
   // Inicia sesión automáticamente tras el registro.
   await signIn("credentials", {

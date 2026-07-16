@@ -87,6 +87,27 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
   crea un bucle infinito con el proxy.
 - CI: .github/workflows/ci.yml (lint + tsc + build). El build NO necesita
   BD (verificado con PostgreSQL apagado).
+- Sesiones por dispositivo: UserSession (user-agent, IP, lastActiveAt con
+  throttle de 10 min, revokedAt). authorize() crea la fila y el id viaja en
+  el JWT; el layout de (app) expulsa sesiones revocadas. Cambiar contraseña
+  revoca las demás; restablecer y suspender revocan todas. Sesiones viejas
+  sin sessionId → /api/salir (re-login único tras el deploy de esta feature).
+- Odómetro: WorkLog.odometerStart/End; si ambos existen, miles = fin −
+  inicio (calculado en servidor, en décimas). El campo de millas manual se
+  deshabilita en el formulario cuando se usa odómetro.
+- Verificación de email: emailVerifiedAt + EmailVerificationToken (24 h,
+  un solo uso). Se envía al registrarse y al cambiar el email; banner con
+  reenvío (3/h) en el layout. /verificar/[token] es pública y NO redirige
+  con sesión iniciada. No bloquea el uso de la app.
+- Suspensión: a los 90 días (SUSPENSION_GRACE_MS) la cuenta se elimina — al
+  intentar login vencido, o vía /api/cron/limpieza (Bearer CRON_SECRET,
+  programada en vercel.json a diario; también purga tokens/sesiones viejas).
+- Exportación: /api/exportar (xlsx con exceljs: hojas Registros/Detalle de
+  tarifas/Gastos; csv con BOM por tipo). Botones en /perfil.
+- Filtros con <form method="GET"> nativo (sin JS) + paginación de 20 en
+  /registros y /gastos; searchParams validados en el servidor.
+- Dashboard: comparativa vs período anterior, racha de días consecutivos,
+  mejor día/semana históricos y desglose de gastos por categoría.
 - bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
   binarios en Vercel.
 - PWA con `@serwist/turbopack` (NO `@serwist/next`: Next 16 compila con

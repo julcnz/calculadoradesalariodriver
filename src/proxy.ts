@@ -10,7 +10,13 @@ export default auth((req) => {
     nextUrl.pathname === "/login" ||
     nextUrl.pathname === "/registro" ||
     nextUrl.pathname === "/recuperar" ||
-    nextUrl.pathname.startsWith("/restablecer");
+    nextUrl.pathname.startsWith("/restablecer") ||
+    nextUrl.pathname.startsWith("/verificar");
+
+  // /verificar debe funcionar también con sesión iniciada (clic desde el correo).
+  if (nextUrl.pathname.startsWith("/verificar")) {
+    return NextResponse.next();
+  }
 
   if (isAuthPage && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));

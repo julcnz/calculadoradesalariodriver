@@ -47,6 +47,22 @@ export async function sendEmail({ to, subject, text }: EmailPayload) {
   }
 }
 
+export async function sendVerificationEmail(to: string, verifyUrl: string) {
+  await sendEmail({
+    to,
+    subject: "Verifica tu email — Calculadora de Salario Driver",
+    text: [
+      "¡Bienvenido!",
+      "",
+      "Confirma que este email es tuyo abriendo este enlace (expira en 24 horas):",
+      "",
+      verifyUrl,
+      "",
+      "Si no creaste una cuenta, puedes ignorar este correo.",
+    ].join("\n"),
+  });
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   await sendEmail({
     to,

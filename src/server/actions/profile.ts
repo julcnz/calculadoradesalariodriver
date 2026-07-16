@@ -4,13 +4,15 @@ import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireUserId } from "@/lib/session";
+import { requireSession, requireUserId } from "@/lib/session";
 import { signOut } from "@/lib/auth";
 import {
   avatarDataUrlSchema,
   changePasswordSchema,
   updateProfileSchema,
 } from "@/lib/validations/profile";
+import { issueEmailVerification } from "@/lib/email-verification";
+import { resolveOrigin } from "@/lib/origin";
 
 export type ProfileFormState = {
   errors?: Record<string, string[]>;
@@ -38,13 +40,25 @@ export async function updateProfile(
     return { errors: { email: ["Ya existe una cuenta con este email"] } };
   }
 
+  const current = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { email: true },
+  });
+  const emailChanged = current.email !== email;
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       name: parsed.data.name || null,
       email,
+      // Un email nuevo debe verificarse de nuevo.
+      ...(emailChanged ? { emailVerifiedAt: null } : {}),
     },
   });
+
+  if (emailChanged) {
+    await issueEmailVerification(userId, email, await resolveOrigin());
+  }
 
   revalidatePath("/perfil");
   revalidatePath("/", "layout");
@@ -95,7 +109,7 @@ export async function changePassword(
   _prevState: ProfileFormState,
   formData: FormData
 ): Promise<ProfileFormState> {
-  const userId = await requireUserId();
+  const { userId, sessionId } = await requireSession();
 
   const parsed = changePasswordSchema.safeParse({
     currentPassword: formData.get("currentPassword"),
@@ -122,11 +136,23 @@ export async function changePassword(
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
-  await prisma.user.update({
-    where: { id: userId },
-    data: { passwordHash },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    }),
+    // Seguridad: cambiar la contraseña cierra las sesiones de otros dispositivos.
+    prisma.userSession.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+        ...(sessionId ? { id: { not: sessionId } } : {}),
+      },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 
+  revalidatePath("/perfil");
   return { success: true };
 }
 
@@ -135,10 +161,17 @@ export async function changePassword(
 export async function suspendAccount() {
   const userId = await requireUserId();
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { suspendedAt: new Date() },
-  });
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: userId },
+      data: { suspendedAt: new Date() },
+    }),
+    // Cierra la sesión en TODOS los dispositivos.
+    prisma.userSession.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 
   await signOut({ redirectTo: "/login" });
 }

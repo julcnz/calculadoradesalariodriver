@@ -106,6 +106,11 @@ export async function resetPassword(
       where: { id: resetToken.id },
       data: { usedAt: new Date() },
     }),
+    // Seguridad: restablecer la contraseña cierra TODAS las sesiones.
+    prisma.userSession.updateMany({
+      where: { userId: resetToken.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
   ]);
 
   redirect("/login?restablecida=1");
