@@ -18,8 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { DashboardPreview } from "@/components/landing/dashboard-preview";
 
-// TODO: actualizar cuando el repositorio se publique en GitHub.
-const GITHUB_URL = "https://github.com/juliancanizares/calculadoradesalariodriver";
+const GITHUB_URL = "https://github.com/julcnz/calculadoradesalariodriver";
 
 export const metadata: Metadata = {
   title: "Calculadora de Salario Driver — ¿Cuánto ganaste realmente?",
