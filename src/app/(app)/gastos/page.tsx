@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -13,18 +14,73 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Pagination, PAGE_SIZE } from "@/components/filters/pagination";
 
 export const metadata: Metadata = { title: "Gastos" };
 
-export default async function ExpensesPage() {
-  const userId = await requireUserId();
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
-  const expenses = await prisma.expense.findMany({
-    where: { userId },
-    orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-    take: 100,
-    include: { category: { select: { name: true } } },
+const selectClass =
+  "h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none dark:bg-input/30";
+
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    categoria?: string;
+    desde?: string;
+    hasta?: string;
+    q?: string;
+    pagina?: string;
+  }>;
+}) {
+  const userId = await requireUserId();
+  const params = await searchParams;
+
+  const desde = params.desde && DATE_REGEX.test(params.desde) ? params.desde : undefined;
+  const hasta = params.hasta && DATE_REGEX.test(params.hasta) ? params.hasta : undefined;
+  const q = params.q?.trim() || undefined;
+  const pagina = Math.max(1, Number(params.pagina) || 1);
+
+  // Categorías que el usuario ha usado en sus gastos.
+  const categories = await prisma.expenseCategory.findMany({
+    where: { expenses: { some: { userId } } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
   });
+  const categoriaId = categories.some((c) => c.id === params.categoria)
+    ? params.categoria
+    : undefined;
+  const hasFilters = Boolean(categoriaId || desde || hasta || q);
+
+  const where = {
+    userId,
+    ...(categoriaId ? { categoryId: categoriaId } : {}),
+    ...(desde || hasta
+      ? {
+          date: {
+            ...(desde ? { gte: new Date(desde) } : {}),
+            ...(hasta ? { lte: new Date(hasta) } : {}),
+          },
+        }
+      : {}),
+    ...(q ? { note: { contains: q, mode: "insensitive" as const } } : {}),
+  };
+
+  const [total, expenses, totalAggregate] = await Promise.all([
+    prisma.expense.count({ where }),
+    prisma.expense.findMany({
+      where,
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      skip: (pagina - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: { category: { select: { name: true } } },
+    }),
+    prisma.expense.aggregate({ where, _sum: { amount: true } }),
+  ]);
+
+  const filteredTotal = Number(totalAggregate._sum.amount ?? 0);
+  const filterParams = { categoria: categoriaId, desde, hasta, q };
 
   return (
     <div className="space-y-6">
@@ -43,63 +99,138 @@ export default async function ExpensesPage() {
         </Button>
       </div>
 
+      {categories.length > 0 && (
+        <form
+          method="GET"
+          className="flex flex-wrap items-center gap-2 rounded-lg border p-3"
+        >
+          <select
+            name="categoria"
+            defaultValue={categoriaId ?? ""}
+            className={selectClass}
+          >
+            <option value="">Todas las categorías</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            type="date"
+            name="desde"
+            defaultValue={desde}
+            aria-label="Desde"
+            className="w-fit"
+          />
+          <Input
+            type="date"
+            name="hasta"
+            defaultValue={hasta}
+            aria-label="Hasta"
+            className="w-fit"
+          />
+          <Input
+            name="q"
+            defaultValue={q}
+            placeholder="Buscar en notas…"
+            className="w-40"
+          />
+          <Button type="submit" variant="outline" size="sm">
+            <Search className="size-4" />
+            Filtrar
+          </Button>
+          {hasFilters && (
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/gastos">Limpiar</Link>
+            </Button>
+          )}
+        </form>
+      )}
+
       {expenses.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Aún no tienes gastos</CardTitle>
+            <CardTitle>
+              {hasFilters ? "Sin resultados" : "Aún no tienes gastos"}
+            </CardTitle>
             <CardDescription>
-              Registra gasolina, mantenimiento y demás para conocer tu
-              ganancia neta real.
+              {hasFilters
+                ? "Ningún gasto coincide con estos filtros."
+                : "Registra gasolina, mantenimiento y demás para conocer tu ganancia neta real."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild>
-              <Link href="/gastos/nuevo">
-                <Plus className="size-4" />
-                Registrar mi primer gasto
-              </Link>
-            </Button>
+            {hasFilters ? (
+              <Button asChild variant="outline">
+                <Link href="/gastos">Quitar filtros</Link>
+              </Button>
+            ) : (
+              <Button asChild>
+                <Link href="/gastos/nuevo">
+                  <Plus className="size-4" />
+                  Registrar mi primer gasto
+                </Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {expenses.map((expense) => (
-            <Card key={expense.id}>
-              <CardContent className="flex items-center justify-between gap-4">
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-medium">
-                      {formatDate(expense.date)}
-                    </p>
-                    <Badge variant="secondary">
-                      {expense.category?.name ?? "Sin categoría"}
-                    </Badge>
+        <>
+          {hasFilters && (
+            <p className="text-sm text-muted-foreground">
+              Total filtrado:{" "}
+              <span className="font-semibold text-foreground">
+                −{formatCurrency(filteredTotal)}
+              </span>
+            </p>
+          )}
+          <div className="space-y-3">
+            {expenses.map((expense) => (
+              <Card key={expense.id}>
+                <CardContent className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium">
+                        {formatDate(expense.date)}
+                      </p>
+                      <Badge variant="secondary">
+                        {expense.category?.name ?? "Sin categoría"}
+                      </Badge>
+                    </div>
+                    {expense.note && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {expense.note}
+                      </p>
+                    )}
                   </div>
-                  {expense.note && (
-                    <p className="truncate text-xs text-muted-foreground">
-                      {expense.note}
+                  <div className="flex shrink-0 items-center gap-2">
+                    <p className="text-base font-bold">
+                      −{formatCurrency(expense.amount.toFixed(2))}
                     </p>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <p className="text-base font-bold">
-                    −{formatCurrency(expense.amount.toFixed(2))}
-                  </p>
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Editar gasto"
-                  >
-                    <Link href={`/gastos/${expense.id}/editar`}>
-                      <Pencil className="size-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Editar gasto"
+                    >
+                      <Link href={`/gastos/${expense.id}/editar`}>
+                        <Pencil className="size-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <Pagination
+            basePath="/gastos"
+            params={filterParams}
+            pagina={pagina}
+            total={total}
+            label="gastos"
+          />
+        </>
       )}
     </div>
   );
