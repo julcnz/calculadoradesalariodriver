@@ -26,6 +26,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ActivityCalendar } from "@/components/dashboard/activity-calendar";
 import { CompanyFilter } from "@/components/dashboard/company-filter";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
 import {
@@ -55,7 +56,7 @@ export default async function DashboardPage({
   const [user, companies] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { weekStartDay: true },
+      select: { weekStartDay: true, mileageRate: true },
     }),
     prisma.company.findMany({
       where: { userId },
@@ -174,6 +175,13 @@ export default async function DashboardPage({
       ? Math.round(incomeCentsWithMiles / (totalMilesTenths / 10))
       : null;
 
+  // Deducción estimada de impuestos: millas registradas × tarifa por milla.
+  const mileageRateCents = Math.round(Number(user.mileageRate) * 100);
+  const deductionCents =
+    totalMilesTenths > 0
+      ? Math.round((totalMilesTenths * mileageRateCents) / 10)
+      : null;
+
   // Comparativa con el período anterior.
   const prevCents = Math.round(
     Number(prevAggregate._sum.totalEarned ?? 0) * 100
@@ -181,6 +189,16 @@ export default async function DashboardPage({
   const changePct =
     prevCents > 0
       ? Math.round(((incomeCents - prevCents) / prevCents) * 100)
+      : null;
+
+  // Proyección: solo para el período EN CURSO (no aplica al día).
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  const isCurrentPeriod = today >= start && today <= end;
+  const totalDays = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+  const elapsedDays = Math.round((today.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+  const projectionCents =
+    isCurrentPeriod && periodo !== "dia" && incomeCents > 0 && elapsedDays < totalDays
+      ? Math.round((incomeCents * totalDays) / elapsedDays)
       : null;
 
   // Racha: días consecutivos trabajados terminando hoy (o ayer).
@@ -294,6 +312,12 @@ export default async function DashboardPage({
                 {changePct}% vs período anterior
               </p>
             )}
+            {projectionCents !== null && (
+              <p>
+                Proyección del período: ~
+                {formatCurrency(projectionCents / 100)}
+              </p>
+            )}
             {goalCents !== null && goalPct !== null && (
               <div className="space-y-1">
                 <Progress value={goalPct} aria-label="Progreso de la meta" />
@@ -364,13 +388,28 @@ export default async function DashboardPage({
                 : "Horas no registradas"}
               {totalMilesTenths > 0 && ` · ${totalMilesTenths / 10} mi`}
             </p>
+            {deductionCents !== null && (
+              <p className="font-medium text-foreground">
+                🧾 Deducción est.: {formatCurrency(deductionCents / 100)} (
+                {formatCurrency(mileageRateCents / 100)}/mi)
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {historyLogs.length > 0 && (
         <Card>
-          <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+          <CardHeader>
+            <CardTitle className="text-base">Constancia</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ActivityCalendar
+              byDay={byDay}
+              today={today}
+              weekStartDay={user.weekStartDay}
+            />
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             <span>
               🔥 Racha:{" "}
               <span className="font-semibold">
@@ -399,6 +438,7 @@ export default async function DashboardPage({
                 </span>
               </span>
             )}
+          </div>
           </CardContent>
         </Card>
       )}

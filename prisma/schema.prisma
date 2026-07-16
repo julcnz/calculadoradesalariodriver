@@ -17,6 +17,7 @@ model User {
   passwordHash    String
   name            String?
   weekStartDay    Int       @default(1) // 0=domingo … 6=sábado; todos los cálculos semanales lo respetan
+  mileageRate     Decimal   @default(0.70) @db.Decimal(4, 2) // $/milla para la deducción estimada (tarifa IRS)
   avatar          Bytes? // foto de perfil reescalada a 256px en el cliente
   avatarMimeType  String?
   avatarUpdatedAt DateTime?

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { WeekStartSelect } from "@/components/settings/week-start-select";
 import { GoalsForm } from "@/components/settings/goals-form";
+import { MileageRateForm } from "@/components/settings/mileage-rate-form";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -21,7 +22,12 @@ export default async function SettingsPage() {
   const [user, goals] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { email: true, name: true, weekStartDay: true },
+      select: {
+        email: true,
+        name: true,
+        weekStartDay: true,
+        mileageRate: true,
+      },
     }),
     prisma.goal.findMany({ where: { userId } }),
   ]);
@@ -83,6 +89,19 @@ export default async function SettingsPage() {
               yearly: goalAmount("YEARLY"),
             }}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Deducción por milla (impuestos)</CardTitle>
+          <CardDescription>
+            Cada milla registrada puede ser deducible de impuestos como
+            contratista independiente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <MileageRateForm current={user.mileageRate.toFixed(2)} />
         </CardContent>
       </Card>
 
