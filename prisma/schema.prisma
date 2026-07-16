@@ -20,16 +20,49 @@ model User {
   avatar          Bytes? // foto de perfil reescalada a 256px en el cliente
   avatarMimeType  String?
   avatarUpdatedAt DateTime?
-  suspendedAt     DateTime? // cuenta pausada; se reactiva al iniciar sesión
+  suspendedAt     DateTime? // cuenta pausada; se reactiva al iniciar sesión (se borra a los 90 días)
+  emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  companies   Company[]
-  suggestions CompanySuggestion[]
-  workLogs    WorkLog[]
-  expenses    Expense[]
-  goals       Goal[]
-  resetTokens PasswordResetToken[]
+  companies          Company[]
+  suggestions        CompanySuggestion[]
+  workLogs           WorkLog[]
+  expenses           Expense[]
+  goals              Goal[]
+  resetTokens        PasswordResetToken[]
+  verificationTokens EmailVerificationToken[]
+  sessions           UserSession[]
+}
+
+// Sesión iniciada en un dispositivo. El JWT lleva el id; el layout de (app)
+// verifica que no esté revocada y actualiza lastActiveAt (con throttle).
+model UserSession {
+  id           String    @id @default(cuid())
+  userId       String
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime  @default(now())
+  revokedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Token de un solo uso para verificar el email (24 h).
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Token de un solo uso para restablecer contraseña. Se guarda el hash
@@ -115,6 +148,8 @@ model WorkLog {
   endTime       String? // "HH:mm"; puede ser menor que startTime (turno cruza medianoche)
   workedMinutes Int? // duración calculada; null = horas no registradas
   miles         Decimal? @db.Decimal(7, 1) // null = no registrado
+  odometerStart Decimal? @db.Decimal(9, 1) // alternativa: millas = fin − inicio
+  odometerEnd   Decimal? @db.Decimal(9, 1)
   note          String?
   totalEarned   Decimal  @db.Decimal(10, 2) // suma de subtotales; se recalcula al editar
   createdAt     DateTime @default(now())

@@ -10,9 +10,13 @@ declare module "next-auth" {
       id: string;
       email: string;
       name?: string | null;
+      sessionId?: string;
     };
   }
 }
+
+// Cuentas suspendidas hace más de 90 días se eliminan definitivamente.
+export const SUSPENSION_GRACE_MS = 90 * 24 * 60 * 60 * 1000;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: "jwt" },
@@ -25,7 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: {},
         password: {},
       },
-      authorize: async (credentials) => {
+      authorize: async (credentials, request) => {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
 
@@ -41,15 +45,34 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!passwordMatches) return null;
 
-        // Una cuenta suspendida se reactiva al iniciar sesión con éxito.
         if (user.suspendedAt) {
+          // Pasado el período de gracia, la cuenta se elimina y el login falla.
+          if (Date.now() - user.suspendedAt.getTime() > SUSPENSION_GRACE_MS) {
+            await prisma.user.delete({ where: { id: user.id } });
+            return null;
+          }
+          // Dentro del período: iniciar sesión reactiva la cuenta.
           await prisma.user.update({
             where: { id: user.id },
             data: { suspendedAt: null },
           });
         }
 
-        return { id: user.id, email: user.email, name: user.name };
+        // Registra la sesión de este dispositivo (visible en /perfil).
+        const userAgent = request?.headers?.get("user-agent") ?? null;
+        const ip =
+          request?.headers?.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+          null;
+        const deviceSession = await prisma.userSession.create({
+          data: { userId: user.id, userAgent, ip },
+        });
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          sessionId: deviceSession.id,
+        };
       },
     }),
   ],
@@ -57,12 +80,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.sessionId = (user as { sessionId?: string }).sessionId;
       }
       return token;
     },
     session({ session, token }) {
       if (token.id) {
         session.user.id = token.id as string;
+      }
+      if (token.sessionId) {
+        session.user.sessionId = token.sessionId as string;
       }
       return session;
     },
