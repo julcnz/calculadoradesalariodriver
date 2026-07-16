@@ -34,6 +34,14 @@ export default async function EditWorkLogPage({
           startTime: workLog.startTime ?? "",
           endTime: workLog.endTime ?? "",
           miles: workLog.miles !== null ? String(Number(workLog.miles)) : "",
+          odometerStart:
+            workLog.odometerStart !== null
+              ? String(Number(workLog.odometerStart))
+              : "",
+          odometerEnd:
+            workLog.odometerEnd !== null
+              ? String(Number(workLog.odometerEnd))
+              : "",
           note: workLog.note ?? "",
           entries: workLog.entries.map((entry) => ({
             id: entry.id,

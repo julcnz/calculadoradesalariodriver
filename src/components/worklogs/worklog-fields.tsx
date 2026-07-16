@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -7,7 +8,10 @@ import { FieldError } from "@/components/auth/field-error";
 import { calculateWorkedMinutes, TIME_REGEX } from "@/lib/dates/time";
 import { formatMinutes } from "@/lib/format";
 
-// Campos comunes a crear/editar: fecha, horas (opcionales), millas (opcionales) y nota.
+const NUMBER_REGEX = /^\d+([.,]\d+)?$/;
+
+// Campos comunes a crear/editar: fecha, horas (opcionales), millas u
+// odómetro (opcionales) y nota.
 export function WorkLogCommonFields({
   defaults,
   startTime,
@@ -19,6 +23,8 @@ export function WorkLogCommonFields({
   defaults: {
     date: string;
     miles: string;
+    odometerStart: string;
+    odometerEnd: string;
     note: string;
   };
   startTime: string;
@@ -32,6 +38,17 @@ export function WorkLogCommonFields({
   const workedMinutes = bothTimes
     ? calculateWorkedMinutes(startTime, endTime)
     : null;
+
+  const [odometerStart, setOdometerStart] = useState(defaults.odometerStart);
+  const [odometerEnd, setOdometerEnd] = useState(defaults.odometerEnd);
+  const odoValid =
+    NUMBER_REGEX.test(odometerStart) && NUMBER_REGEX.test(odometerEnd);
+  const odoMiles = odoValid
+    ? (Math.round(Number(odometerEnd.replace(",", ".")) * 10) -
+        Math.round(Number(odometerStart.replace(",", ".")) * 10)) /
+      10
+    : null;
+  const usingOdometer = Boolean(odometerStart || odometerEnd);
 
   return (
     <>
@@ -91,9 +108,47 @@ export function WorkLogCommonFields({
           inputMode="decimal"
           placeholder="Ej. 120.5"
           defaultValue={defaults.miles}
+          disabled={usingOdometer}
           className="w-32"
         />
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">
+              Odómetro inicio
+            </span>
+            <Input
+              name="odometerStart"
+              inputMode="decimal"
+              placeholder="Ej. 45230.0"
+              value={odometerStart}
+              onChange={(e) => setOdometerStart(e.target.value)}
+              className="w-32"
+            />
+          </div>
+          <div className="space-y-1">
+            <span className="text-xs text-muted-foreground">
+              Odómetro fin
+            </span>
+            <Input
+              name="odometerEnd"
+              inputMode="decimal"
+              placeholder="Ej. 45315.3"
+              value={odometerEnd}
+              onChange={(e) => setOdometerEnd(e.target.value)}
+              className="w-32"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {odoMiles !== null
+            ? odoMiles >= 0
+              ? `Millas calculadas: ${odoMiles.toFixed(1)}`
+              : "El odómetro final debe ser mayor que el inicial"
+            : "Escribe las millas directamente o usa el odómetro y las calculamos."}
+        </p>
         <FieldError errors={errors?.miles} />
+        <FieldError errors={errors?.odometerStart} />
+        <FieldError errors={errors?.odometerEnd} />
       </div>
 
       <div className="space-y-2">

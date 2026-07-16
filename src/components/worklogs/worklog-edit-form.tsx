@@ -38,6 +38,8 @@ export type WorkLogForEdit = {
   startTime: string;
   endTime: string;
   miles: string;
+  odometerStart: string;
+  odometerEnd: string;
   note: string;
   entries: {
     id: string;
@@ -118,6 +120,8 @@ export function WorkLogEditForm({ workLog }: { workLog: WorkLogForEdit }) {
             defaults={{
               date: workLog.date,
               miles: workLog.miles,
+              odometerStart: workLog.odometerStart,
+              odometerEnd: workLog.odometerEnd,
               note: workLog.note,
             }}
             startTime={startTime}

@@ -118,7 +118,13 @@ export function WorkLogCreateForm({ routes }: { routes: RouteWithRates[] }) {
           <Separator />
 
           <WorkLogCommonFields
-            defaults={{ date: todayLocalISO(), miles: "", note: "" }}
+            defaults={{
+              date: todayLocalISO(),
+              miles: "",
+              odometerStart: "",
+              odometerEnd: "",
+              note: "",
+            }}
             startTime={startTime}
             endTime={endTime}
             onStartTimeChange={setStartTime}

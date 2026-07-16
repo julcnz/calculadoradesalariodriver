@@ -45,6 +45,30 @@ function emptyToNull(value: string | undefined): string | null {
   return value ? value : null;
 }
 
+// Con odómetro completo, las millas se calculan (fin − inicio, en décimas
+// para evitar coma flotante); si no, se usan las millas manuales.
+function resolveMiles(data: {
+  miles?: string;
+  odometerStart?: string;
+  odometerEnd?: string;
+}): { miles: string | null; odometerStart: string | null; odometerEnd: string | null } {
+  if (data.odometerStart && data.odometerEnd) {
+    const tenths =
+      Math.round(Number(data.odometerEnd) * 10) -
+      Math.round(Number(data.odometerStart) * 10);
+    return {
+      miles: (tenths / 10).toFixed(1),
+      odometerStart: data.odometerStart,
+      odometerEnd: data.odometerEnd,
+    };
+  }
+  return {
+    miles: emptyToNull(data.miles),
+    odometerStart: null,
+    odometerEnd: null,
+  };
+}
+
 export async function createWorkLog(
   _prevState: WorkLogFormState,
   formData: FormData
@@ -57,6 +81,8 @@ export async function createWorkLog(
     startTime: formData.get("startTime") ?? "",
     endTime: formData.get("endTime") ?? "",
     miles: formData.get("miles") ?? "",
+    odometerStart: formData.get("odometerStart") ?? "",
+    odometerEnd: formData.get("odometerEnd") ?? "",
     note: formData.get("note") ?? "",
     quantities: parseQuantitiesFromForm(formData),
   });
@@ -100,6 +126,8 @@ export async function createWorkLog(
 
   const totalEarned = sumAmounts(entries.map((e) => e.subtotal));
 
+  const milesData = resolveMiles(data);
+
   await prisma.workLog.create({
     data: {
       userId,
@@ -108,7 +136,9 @@ export async function createWorkLog(
       startTime,
       endTime,
       workedMinutes,
-      miles: emptyToNull(data.miles),
+      miles: milesData.miles,
+      odometerStart: milesData.odometerStart,
+      odometerEnd: milesData.odometerEnd,
       note: emptyToNull(data.note),
       totalEarned,
       entries: { create: entries },
@@ -143,6 +173,8 @@ export async function updateWorkLog(
     startTime: formData.get("startTime") ?? "",
     endTime: formData.get("endTime") ?? "",
     miles: formData.get("miles") ?? "",
+    odometerStart: formData.get("odometerStart") ?? "",
+    odometerEnd: formData.get("odometerEnd") ?? "",
     note: formData.get("note") ?? "",
     entries: parseEntriesFromForm(formData),
   });
@@ -193,7 +225,7 @@ export async function updateWorkLog(
         startTime,
         endTime,
         workedMinutes,
-        miles: emptyToNull(data.miles),
+        ...resolveMiles(data),
         note: emptyToNull(data.note),
         totalEarned,
       },
