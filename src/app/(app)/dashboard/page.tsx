@@ -4,13 +4,17 @@ import { Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import {
+  addDays,
   getPeriodRange,
   isPeriodType,
+  shiftPeriod,
+  startOfWeek,
+  toDateParam,
   WEEKDAYS_ES,
   type PeriodType,
 } from "@/lib/dates/week";
 import { todayForUser } from "@/lib/dates/server";
-import { formatCurrency, formatMinutes } from "@/lib/format";
+import { formatCurrency, formatDate, formatMinutes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { GoalPeriod } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
@@ -66,12 +70,19 @@ export default async function DashboardPage({
 
   const { start, end } = getPeriodRange(periodo, date, user.weekStartDay);
 
-  const [logs, expenses] = await Promise.all([
+  const companyWhere = companyId ? { route: { companyId } } : {};
+  const prevRange = getPeriodRange(
+    periodo,
+    shiftPeriod(periodo, date, -1),
+    user.weekStartDay
+  );
+
+  const [logs, expenses, prevAggregate, historyLogs] = await Promise.all([
     prisma.workLog.findMany({
       where: {
         userId,
         date: { gte: start, lte: end },
-        ...(companyId ? { route: { companyId } } : {}),
+        ...companyWhere,
       },
       include: {
         route: { select: { name: true } },
@@ -80,7 +91,21 @@ export default async function DashboardPage({
     }),
     prisma.expense.findMany({
       where: { userId, date: { gte: start, lte: end } },
-      select: { amount: true },
+      select: { amount: true, category: { select: { name: true } } },
+    }),
+    // Período anterior, para la comparativa.
+    prisma.workLog.aggregate({
+      where: {
+        userId,
+        date: { gte: prevRange.start, lte: prevRange.end },
+        ...companyWhere,
+      },
+      _sum: { totalEarned: true },
+    }),
+    // Historial completo (ligero) para racha y récords.
+    prisma.workLog.findMany({
+      where: { userId, ...companyWhere },
+      select: { date: true, totalEarned: true },
     }),
   ]);
 
@@ -149,6 +174,57 @@ export default async function DashboardPage({
       ? Math.round(incomeCentsWithMiles / (totalMilesTenths / 10))
       : null;
 
+  // Comparativa con el período anterior.
+  const prevCents = Math.round(
+    Number(prevAggregate._sum.totalEarned ?? 0) * 100
+  );
+  const changePct =
+    prevCents > 0
+      ? Math.round(((incomeCents - prevCents) / prevCents) * 100)
+      : null;
+
+  // Racha: días consecutivos trabajados terminando hoy (o ayer).
+  const workedDates = new Set(
+    historyLogs.map((log) => toDateParam(log.date))
+  );
+  let streak = 0;
+  let cursor = workedDates.has(toDateParam(today)) ? today : addDays(today, -1);
+  while (workedDates.has(toDateParam(cursor))) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  // Récords históricos (respetan el filtro de empresa activo).
+  const byDay = new Map<string, number>();
+  const byWeek = new Map<string, number>();
+  for (const log of historyLogs) {
+    const cents = Math.round(Number(log.totalEarned) * 100);
+    const dayKey = toDateParam(log.date);
+    byDay.set(dayKey, (byDay.get(dayKey) ?? 0) + cents);
+    const weekKey = toDateParam(startOfWeek(log.date, user.weekStartDay));
+    byWeek.set(weekKey, (byWeek.get(weekKey) ?? 0) + cents);
+  }
+  const bestDay = [...byDay.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+  const bestWeek = [...byWeek.entries()].sort((a, b) => b[1] - a[1])[0] ?? null;
+
+  // Desglose de gastos por categoría.
+  const byCategory = new Map<string, number>();
+  for (const expense of expenses) {
+    const name = expense.category?.name ?? "Sin categoría";
+    byCategory.set(
+      name,
+      (byCategory.get(name) ?? 0) +
+        Math.round(Number(expense.amount) * 100)
+    );
+  }
+  const categoryBreakdown = [...byCategory.entries()]
+    .map(([name, cents]) => ({
+      name,
+      cents,
+      pct: expenseCents > 0 ? Math.round((cents / expenseCents) * 100) : 0,
+    }))
+    .sort((a, b) => b.cents - a.cents);
+
   // Gráfico: ganancias por ruta dentro del período.
   const byRoute = new Map<string, { total: number; dates: Set<string> }>();
   for (const log of logs) {
@@ -212,6 +288,12 @@ export default async function DashboardPage({
                 ? "1 día trabajado"
                 : `${daysWorked} días trabajados`}
             </p>
+            {changePct !== null && (
+              <p className="font-medium text-foreground">
+                {changePct >= 0 ? "▲" : "▼"} {changePct >= 0 ? "+" : ""}
+                {changePct}% vs período anterior
+              </p>
+            )}
             {goalCents !== null && goalPct !== null && (
               <div className="space-y-1">
                 <Progress value={goalPct} aria-label="Progreso de la meta" />
@@ -286,31 +368,101 @@ export default async function DashboardPage({
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Ganancias por ruta</CardTitle>
-          <CardDescription>
-            Pasa el cursor sobre una barra para ver el detalle.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (
-            <div className="flex flex-col items-start gap-3 py-4">
-              <p className="text-sm text-muted-foreground">
-                No hay registros en este período.
+      {historyLogs.length > 0 && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+            <span>
+              🔥 Racha:{" "}
+              <span className="font-semibold">
+                {streak === 1 ? "1 día" : `${streak} días`}
+              </span>
+            </span>
+            {bestDay && (
+              <span>
+                💪 Mejor día:{" "}
+                <span className="font-semibold">
+                  {formatCurrency(bestDay[1] / 100)}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  ({formatDate(new Date(bestDay[0]))})
+                </span>
+              </span>
+            )}
+            {bestWeek && (
+              <span>
+                🏆 Mejor semana:{" "}
+                <span className="font-semibold">
+                  {formatCurrency(bestWeek[1] / 100)}
+                </span>{" "}
+                <span className="text-muted-foreground">
+                  (del {formatDate(new Date(bestWeek[0]))})
+                </span>
+              </span>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Ganancias por ruta</CardTitle>
+            <CardDescription>
+              Pasa el cursor sobre una barra para ver el detalle.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {chartData.length === 0 ? (
+              <div className="flex flex-col items-start gap-3 py-4">
+                <p className="text-sm text-muted-foreground">
+                  No hay registros en este período.
+                </p>
+                <Button asChild size="sm">
+                  <Link href="/registros/nuevo">
+                    <Plus className="size-4" />
+                    Nuevo registro
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <RouteEarningsChart data={chartData} />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Gastos por categoría</CardTitle>
+            <CardDescription>En qué se va el dinero del período.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {categoryBreakdown.length === 0 ? (
+              <p className="py-4 text-sm text-muted-foreground">
+                No hay gastos en este período.
               </p>
-              <Button asChild size="sm">
-                <Link href="/registros/nuevo">
-                  <Plus className="size-4" />
-                  Nuevo registro
-                </Link>
-              </Button>
-            </div>
-          ) : (
-            <RouteEarningsChart data={chartData} />
-          )}
-        </CardContent>
-      </Card>
+            ) : (
+              <div className="space-y-3">
+                {categoryBreakdown.map((category) => (
+                  <div key={category.name} className="space-y-1">
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="truncate">{category.name}</span>
+                      <span className="shrink-0 text-muted-foreground">
+                        {formatCurrency(category.cents / 100)} · {category.pct}%
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-chart-3"
+                        style={{ width: `${category.pct}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
