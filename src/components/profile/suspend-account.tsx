@@ -32,9 +32,9 @@ export function SuspendAccountButton() {
           <AlertDialogTitle>¿Suspender tu cuenta?</AlertDialogTitle>
           <AlertDialogDescription>
             Tu sesión se cerrará en todos los dispositivos y la cuenta quedará
-            pausada. No se borra ningún dato: tus registros, rutas y empresas
-            seguirán aquí. Para reactivarla, simplemente vuelve a iniciar
-            sesión.
+            pausada. Para reactivarla, simplemente vuelve a iniciar sesión.
+            Importante: si la cuenta pasa 3 meses suspendida, se eliminará
+            definitivamente junto con todos sus datos.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
