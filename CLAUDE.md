@@ -2,164 +2,181 @@
 
 # Calculadora de Salario Driver
 
-PWA para conductores de reparto independientes: registran su trabajo diario
-(paquetes entregados por tipo de tarifa, millas, horas) y la app calcula
-ganancias y métricas con dashboard filtrable. Open source (AGPL-3.0).
-UI en español; código (variables, funciones) en inglés. Preparada para i18n futura.
+## 1. Resumen del proyecto
 
-**Fuente de verdad:** `borrador-proyecto.md` en la raíz (especificación completa).
+PWA para **conductores de reparto independientes** (les pagan por paquete, con
+tarifas distintas por tipo de entrega). Registran su trabajo diario y gastos;
+la app calcula ganancia neta real, promedios y métricas en un dashboard
+filtrable por día/semana personalizada/mes/trimestre/año. Open source
+(**AGPL-3.0**), UI en español, código en inglés, preparada para i18n futura.
 
-## Stack
+**EN PRODUCCIÓN**: https://calculadoradesalariodriver.vercel.app ·
+Repo: https://github.com/julcnz/calculadoradesalariodriver (usuario: julcnz)
 
-Next.js 16 (App Router) + TypeScript · Tailwind v4 + shadcn/ui (estilo radix-vega,
-CSS variables) · next-themes (claro/oscuro/sistema) · PWA con @serwist/next ·
-PostgreSQL + Prisma 7 (cliente TS generado en `src/generated/prisma`, driver
-adapter `@prisma/adapter-pg`) · Auth.js v5 beta (credenciales + bcryptjs) ·
-Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
+## 2. Stack y arquitectura
 
-## Comandos
+Next.js 16 (App Router, Turbopack) + TypeScript · Tailwind v4 + shadcn/ui
+(estilo radix-vega, monocromo, CSS variables) · next-themes · PWA con
+`@serwist/turbopack` · PostgreSQL + Prisma 7 (cliente TS generado en
+`src/generated/prisma`, adapter `@prisma/adapter-pg`) · Auth.js v5 beta
+(credenciales + bcryptjs, sesión JWT sin adapter) · Zod 4 · Recharts 3 ·
+exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
 
-- `npm run dev` — servidor de desarrollo (Turbopack)
-- `npm run build` / `npm start` — build y servir producción
-- `npm run lint` / `npm run format` — ESLint / Prettier
-- `npx prisma migrate dev --name <nombre>` — crear/aplicar migración
-- `npx prisma generate` — regenerar cliente (sale a `src/generated/prisma`, no se commitea)
-- `npx prisma studio` — inspeccionar la base de datos
-- BD local: PostgreSQL 17 vía Homebrew (`brew services start postgresql@17`),
-  base `calculadoradriver`. Alternativa para otros devs: `docker compose up -d`.
-
-## Estructura
-
-- `src/app/page.tsx` — landing pública en `/` (sin sesión muestra la landing;
-  con sesión redirige a /dashboard — chequeo en proxy Y en la página). Mockup
-  del dashboard con datos ficticios en `src/components/landing/`. OG image en
-  `public/og.png`; `metadataBase` sale de AUTH_URL. El enlace a GitHub es un
-  placeholder (const GITHUB_URL) hasta publicar el repo. Diseño guiado por la
-  skill de plugin `ui-ux-pro-max` (estilo "exaggerated minimalism", tokens del
-  tema existente, acento esmeralda solo en cifras de dinero).
-- `src/app/(auth)/` — login y registro (público)
-- `src/app/(app)/` — dashboard, registros, rutas, empresas, configuración (requiere sesión)
+- `src/app/page.tsx` — landing pública en `/` (sin sesión: landing; con
+  sesión: redirect a /dashboard — chequeo en proxy Y en página). Mockup con
+  datos ficticios en `src/components/landing/`. OG en `public/og.png`.
+- `src/app/(auth)/` — login, registro, recuperar, restablecer/[token],
+  verificar/[token] (públicas en el proxy)
+- `src/app/(app)/` — dashboard, registros, rutas, empresas, gastos, guia,
+  configuracion, perfil (protegidas; cada sección tiene `loading.tsx` con
+  skeleton a medida)
+- `src/app/api/` — auth, avatar/[userId], exportar, salir, cron/limpieza
 - `src/components/ui/` — shadcn (no editar a mano salvo necesidad)
-- `src/lib/` — prisma, auth, `validations/` (Zod compartido), `dates/` (semana personalizada)
+- `src/lib/` — prisma, auth, rate-limit, email, offline-queue,
+  `validations/` (Zod compartido), `dates/` (semana personalizada + tz)
 - `src/server/actions/` — Server Actions por módulo
-- `prisma/schema.prisma` + `prisma.config.ts` (Prisma 7: el CLI carga .env vía dotenv aquí)
+- `src/proxy.ts` — Next 16 renombró middleware→proxy; chequeo optimista
+- `prisma/schema.prisma` + `prisma.config.ts` (Prisma 7 carga .env aquí)
 
-## Reglas de negocio críticas (NO negociables)
+## 3. Reglas de negocio (NO negociables) y decisiones técnicas
 
-1. **Snapshots de tarifas**: `WorkLogEntry` guarda nombre y valor de la tarifa al
-   momento del registro. Editar un `RateType` jamás altera registros pasados.
-2. **Millas/horas opcionales**: si no se ingresan → `null` en BD y "—" o
-   "No registrado" en UI. NUNCA 0 por defecto (contamina promedios $/milla, $/hora).
-3. **Horas**: usuario ingresa inicio y fin; la app calcula duración y soporta
-   turnos que cruzan medianoche.
-4. **Semana de pago personalizada**: el usuario elige el día de inicio de su semana;
-   TODOS los cálculos y gráficos semanales la respetan.
-5. **Registros editables**: los registros pasados se editan y los totales se recalculan.
-6. **Texto libre sin normalizar**: empresas/categorías escritas en "Otra: ___" se
-   guardan tal cual (`CompanySuggestion`, `texto_libre_original` en gastos).
-7. **Multi-empresa**: varias empresas por usuario a lo largo del tiempo, una activa,
-   historial completo, filtros por empresa en dashboard.
-8. **Rutas con tarifas flexibles**: cada ruta pertenece a una empresa y tiene tarifas
-   definidas por el usuario; al crear una ruta se sugieren "Tarifa completa" y "Tarifa doble".
-9. **Flujo guiado**: no se puede crear un registro de trabajo sin al menos una ruta;
-   guiar al usuario a crearla primero.
-10. **Contraseña**: mínimo 8 caracteres, una mayúscula y un número, con confirmación.
+**Reglas de negocio:**
+1. **Snapshots de tarifas**: `WorkLogEntry` guarda nombre y valor al momento
+   del registro. Editar un `RateType` jamás altera registros pasados; editar
+   un registro recalcula con SU snapshot, no la tarifa vigente.
+2. **Millas/horas opcionales**: null en BD y "—"/"No registrado" en UI.
+   NUNCA 0 (contamina $/milla y $/hora; cada promedio usa solo el ingreso de
+   registros que sí tienen ese dato).
+3. **Horas**: inicio y fin; la duración soporta cruce de medianoche.
+4. **Semana de pago personalizada** (User.weekStartDay): TODOS los cálculos
+   semanales la respetan (helpers en `src/lib/dates/week.ts`).
+5. Registros pasados editables con recálculo de totales.
+6. **Texto libre sin normalizar**: "Otra: ___" de empresas/categorías se
+   guarda tal cual (CompanySuggestion.rawText, Expense.originalFreeText).
+7. Multi-empresa: una activa, historial completo, filtro en dashboard.
+8. Rutas con tarifas flexibles; al crear se sugieren "Tarifa completa" $1.45
+   y "Tarifa doble" $0.50.
+9. Flujo guiado: sin ruta no hay registro de trabajo.
+10. Contraseña: mínimo 8, una mayúscula, un número, con confirmación.
 
-## Decisiones tomadas
-
-- Fase 1 (MVP) solamente en UI: auth, empresas/rutas, registro diario, edición,
-  semana personalizada, dashboard básico, PWA + modo oscuro. El esquema Prisma
-  completo (incl. Expense, ExpenseCategory, Goal) se define desde el inicio.
-- Gastos (/gastos): categorías predefinidas como filas GLOBALES en
-  ExpenseCategory (userId null, se crean bajo demanda); "Otra: ___" crea
-  categoría propia del usuario y guarda el texto crudo en
-  Expense.originalFreeText (regla 6). Los gastos NO se filtran por empresa.
-- Dashboard: selector de período (día/semana/mes/trimestre/año + navegación
-  ← →) vía searchParams `periodo` y `fecha`; tarjetas Ingresos/Gastos/Neto/
-  Promedios. Helpers de período en src/lib/dates/week.ts (getPeriodRange/
-  shiftPeriod). Todo cálculo monetario agrega en centavos (Math.round(x*100)).
-- Zona horaria: cookie `tz` (IANA) mantenida por <TimezoneSync/> en el layout;
-  el servidor calcula "hoy" con todayForUser() (src/lib/dates/server.ts).
-  NUNCA usar todayAsBusinessDate() en código de servidor (en Vercel es UTC).
-- Metas: modelo Goal, una por período (DAILY/WEEKLY/MONTHLY/YEARLY), se editan
-  en /configuracion; barra de progreso sobre Ingresos en el dashboard.
-- Promedios $/h y $/milla: solo con registros que SÍ tienen horas/millas
-  (regla 2) — cada promedio usa el ingreso de sus propios registros.
-- Guía de inicio en /guia (checklist con progreso real), enlazada desde
-  /configuracion. No se muestra automáticamente.
-- Rate limiting por IP en memoria (src/lib/rate-limit.ts): login 10/15 min,
-  registro y recuperación 5/h. En serverless es por instancia (parcial).
-- Sesiones huérfanas (usuario borrado/suspendido): el layout de (app)
-  redirige a /api/salir para LIMPIAR la cookie — redirigir a /login directo
-  crea un bucle infinito con el proxy.
-- CI: .github/workflows/ci.yml (lint + tsc + build). El build NO necesita
-  BD (verificado con PostgreSQL apagado).
-- Sesiones por dispositivo: UserSession (user-agent, IP, lastActiveAt con
-  throttle de 10 min, revokedAt). authorize() crea la fila y el id viaja en
-  el JWT; el layout de (app) expulsa sesiones revocadas. Cambiar contraseña
-  revoca las demás; restablecer y suspender revocan todas. Sesiones viejas
-  sin sessionId → /api/salir (re-login único tras el deploy de esta feature).
-- Odómetro: WorkLog.odometerStart/End; si ambos existen, miles = fin −
-  inicio (calculado en servidor, en décimas). El campo de millas manual se
-  deshabilita en el formulario cuando se usa odómetro.
-- Verificación de email: emailVerifiedAt + EmailVerificationToken (24 h,
-  un solo uso). Se envía al registrarse y al cambiar el email; banner con
-  reenvío (3/h) en el layout. /verificar/[token] es pública y NO redirige
-  con sesión iniciada. No bloquea el uso de la app.
-- Los tokens de email se consumen con BOTÓN (server action), nunca al cargar
-  la página: los escáneres de Gmail/Outlook visitan los enlaces. Y los
-  correos van en HTML (emailLayout en src/lib/email.ts) porque el texto
-  plano PARTE las URLs largas (bug real en producción: token truncado).
-- Suspensión: a los 90 días (SUSPENSION_GRACE_MS) la cuenta se elimina — al
-  intentar login vencido, o vía /api/cron/limpieza (Bearer CRON_SECRET,
-  programada en vercel.json a diario; también purga tokens/sesiones viejas).
-- Exportación: /api/exportar (xlsx con exceljs: hojas Registros/Detalle de
-  tarifas/Gastos; csv con BOM por tipo). Botones en /perfil.
-- Filtros con <form method="GET"> nativo (sin JS) + paginación de 20 en
-  /registros y /gastos; searchParams validados en el servidor.
-- Dashboard: comparativa vs período anterior, racha de días consecutivos,
-  mejor día/semana históricos y desglose de gastos por categoría.
-- Deducción por milla: User.mileageRate (default 0.70, editable en
-  /configuracion); el dashboard muestra millas del período × tarifa.
-- Proyección: solo período EN CURSO (nunca "día"): ingresos × díasTotales /
-  díasTranscurridos.
-- Calendario de constancia: ActivityCalendar (server component, 12 semanas,
-  intensidad por ganancia diaria, respeta weekStartDay) dentro de la card
-  Constancia junto a racha/récords.
-- PWA: shortcuts del manifest → /registros/nuevo y /gastos/nuevo.
-- Modo offline: si no hay conexión al guardar un registro, se encola en
-  localStorage (src/lib/offline-queue.ts) y <OfflineSyncer/> lo reenvía al
-  reconectar vía syncOfflineWorkLog (persistWorkLog compartido, sin redirect).
-  Anti-duplicados: candado a nivel de módulo + retirar de la cola ANTES de
-  enviar (re-encolando si falla la red). El aviso de sincronización persiste
-  al router.refresh() vía sessionStorage. OJO: en dev, el HMR puede dejar
-  listeners viejos y duplicar envíos — probar siempre con recarga en frío.
-- bcryptjs (JS puro) en lugar de bcrypt/argon2 nativos: evita problemas de
-  binarios en Vercel.
-- PWA con `@serwist/turbopack` (NO `@serwist/next`: Next 16 compila con
-  Turbopack). SW en `src/app/sw.ts` servido por `src/app/serwist/[path]/route.ts`;
-  registro vía `SerwistProvider` en el layout raíz. Manifest en `src/app/manifest.ts`,
-  iconos en `public/icons/`. Página offline en `/~offline`.
-- Modo oscuro: next-themes (`attribute="class"`) + toggle en el header.
-- El matcher de `src/proxy.ts` debe excluir `serwist/`, `~offline`, `icons/` y
-  `manifest.webmanifest` o la PWA deja de instalar.
-- Perfil (`/perfil`): foto guardada como Bytes en la BD (recorte/reescalado a
-  256px en el cliente, ~3-30 KB), servida por `/api/avatar/[userId]` con caché
-  y `?v=timestamp`. El layout de (app) lee al usuario fresco de la BD: refleja
-  ediciones al instante y expulsa sesiones suspendidas en cualquier dispositivo.
-- Suspensión de cuenta: `suspendedAt` en User; NO borra datos, cierra sesión y
-  se reactiva automáticamente al volver a iniciar sesión (estilo "desactivar").
-- Contraseñas: cambio desde /perfil (verifica la actual) y recuperación por
-  correo en /recuperar → /restablecer/[token]. Token sha256 de un solo uso,
-  expira en 1 h; respuesta genérica anti-enumeración. Correos vía Resend
-  (`RESEND_API_KEY` + `EMAIL_FROM`); sin API key se imprimen en la consola
-  del servidor (src/lib/email.ts). /recuperar y /restablecer son públicas
-  en el proxy.
-- Next.js 16: consultar `node_modules/next/dist/docs/` antes de usar APIs que
-  puedan haber cambiado (p. ej. `proxy.ts` reemplaza a `middleware.ts`).
-- Prisma 7: `migrate dev` NO regenera el cliente — correr `npx prisma generate`
-  y reiniciar `npm run dev` tras cambiar el esquema.
-- Auth: sesión JWT (requerida por Credentials), sin adapter de BD. `src/proxy.ts`
-  hace el chequeo optimista; el real está en `(app)/layout.tsx` y las actions.
+**Decisiones técnicas críticas (con su porqué):**
+- **Zona horaria**: cookie `tz` (IANA) mantenida por `<TimezoneSync/>`; el
+  servidor calcula "hoy" con `todayForUser()` (src/lib/dates/server.ts).
+  NUNCA `todayAsBusinessDate()` en servidor (Vercel es UTC). Fechas de
+  negocio = fecha pura @db.Date (medianoche UTC); week.ts opera en UTC.
+- **Dinero**: agregaciones en centavos (`Math.round(x*100)`); Decimal en BD.
+- **theme-color de iOS**: `<ThemeColorSync/>` colapsa los metas en uno que
+  sigue el tema DE LA APP (next-themes), no el del sistema — si no, la barra
+  de estado sale gris con teléfono oscuro + app clara.
+- **Safe areas iOS (PWA)**: `viewportFit: "cover"` es OBLIGATORIO (sin él
+  env(safe-area-inset-*)=0 y el home indicator tapa la nav inferior).
+  statusBarStyle black-translucent. Insets aplicados en headers, nav
+  inferior, main, footer, auth layout y aviso offline.
+- **Emails**: en HTML con botón (`emailLayout` en src/lib/email.ts) — el
+  texto plano PARTE URLs largas (bug real: Gmail truncó un token). Los
+  tokens se consumen con BOTÓN (server action), nunca al cargar la página
+  (los escáneres de Gmail/Outlook visitan los enlaces). Sin RESEND_API_KEY
+  los correos se imprimen en la consola del servidor.
+- **Sesiones por dispositivo**: UserSession (UA, IP, lastActiveAt con
+  throttle 10 min, revokedAt); el id viaja en el JWT; el layout de (app)
+  expulsa revocadas/suspendidas vía `/api/salir` (redirigir directo a /login
+  crea bucle infinito con el proxy). Cambiar contraseña revoca las demás;
+  restablecer/suspender revocan todas.
+- **Suspensión**: reactivable al iniciar sesión; a los 90 días
+  (SUSPENSION_GRACE_MS) la cuenta se elimina (al intentar login o vía
+  /api/cron/limpieza con Bearer CRON_SECRET, cron diario en vercel.json).
+- **Modo offline**: cola en localStorage (src/lib/offline-queue.ts) +
+  `<OfflineSyncer/>` reenvía al reconectar vía `syncOfflineWorkLog`
+  (persistWorkLog compartido sin redirect). Anti-duplicados: candado a
+  nivel de módulo + retirar de la cola ANTES de enviar (re-encolar si falla
+  la red). OJO: el HMR de dev deja listeners viejos que duplican — probar
+  con recarga en frío.
+- **Loading**: `loading.tsx` por sección + spinner ✻ (estilo Claude) en el
+  ícono tocado de la nav vía `useLinkStatus`, con 100ms de retraso
+  anti-parpadeo y prefers-reduced-motion.
+- **Proxy matcher**: debe excluir api, estáticos, `serwist/`, `~offline`,
+  `icons/`, manifest y cualquier archivo con extensión (og.png devolvía 307
+  al login). Rutas públicas: /, /login, /registro, /recuperar,
+  /restablecer/*, /verificar/* (esta última NO redirige con sesión).
+- **Prisma 7**: `migrate dev` NO regenera el cliente — correr
+  `npx prisma generate` y REINICIAR `npm run dev` tras cambiar el esquema.
+- **PWA**: `@serwist/turbopack` (NO @serwist/next; Next 16 = Turbopack).
+  SW en src/app/sw.ts servido por src/app/serwist/[path]/route.ts; registro
+  con SerwistProvider; shortcuts del manifest → /registros/nuevo y
+  /gastos/nuevo. En iOS, statusBarStyle se hornea al instalar.
+- **CI**: Node 24 en ci.yml — npm 10 (Node 22) valida el lockfile distinto
+  que npm 11 que lo genera (EUSAGE Missing @swc/helpers). El build NO
+  necesita BD. bcryptjs (JS puro) evita binarios nativos en Vercel.
+- **Rate limiting**: por IP en memoria (src/lib/rate-limit.ts): login 10/15
+  min, registro/recuperación 5/h, reenvío verificación 3/h. En serverless
+  es por instancia (parcial) — Redis/Upstash si crece.
+- Deducción por milla: User.mileageRate (default 0.70, editable en Ajustes).
+- Proyección solo del período EN CURSO (nunca "día").
+- Foto de perfil: Bytes en BD (recorte cliente a 256px), servida por
+  /api/avatar/[userId] con caché + ?v=timestamp.
 - Formularios: Server Actions + `useActionState` (sin react-hook-form);
-  errores de Zod con `z.flattenError(...).fieldErrors`.
+  errores Zod con `z.flattenError(...).fieldErrors`.
+
+## 4. Convenciones
+
+- UI en **español**, código (variables/funciones/commits descriptivos) en
+  inglés técnico con mensajes de commit en español.
+- Íconos: lucide (SVG), no emojis como íconos (los emojis solo como acento
+  de texto: logo 💵, racha 🔥).
+- Diseño: monocromo radix-vega; acento esmeralda SOLO en cifras de dinero
+  positivas; skill de diseño de referencia: plugin `ui-ux-pro-max`.
+- Mobile-first; nav inferior en móvil (6 ítems), header en desktop.
+- Server components por defecto; "use client" solo cuando hace falta.
+- Verificación: typecheck + lint + prueba real en navegador antes de cada
+  commit; commits por módulo/feature.
+
+## 5. Funcionalidades implementadas (todas verificadas)
+
+Auth completo (registro, login, logout, recuperación por correo,
+verificación de email con banner y reenvío, rate limiting, sesiones por
+dispositivo con revocación) · Empresas multi + "Otra" · Rutas con tarifas
+flexibles · Registro diario (snapshots, odómetro inicio/fin, medianoche,
+total en vivo, edición/eliminación) · Gastos por categorías · Dashboard
+(períodos con navegación ← →, Ingresos/Gastos/Neto/Promedios $/h y $/milla,
+meta con progreso, proyección, comparativa vs período anterior, racha,
+récords, calendario de constancia 12 semanas, gráfico por ruta, desglose de
+gastos, filtro por empresa, deducción por milla) · Metas por período ·
+Filtros avanzados + paginación en registros/gastos · Exportación Excel/CSV ·
+Perfil (foto, datos, contraseña, dispositivos, exportar, suspensión con
+borrado a 90 días) · Guía de inicio (/guia desde Ajustes) · PWA instalable
+con atajos y modo offline con sincronización · Modo claro/oscuro/sistema ·
+Landing pública con SEO/OG · Skeletons + spinner de navegación · Safe areas
+iOS · Crédito "Hecho por Julián" + Buy Me a Coffee (julcnzs) en Ajustes.
+
+## 6. Pendientes y próximos pasos
+
+- **Rotar secretos** expuestos en la conversación de lanzamiento: password
+  de Neon y API key de Resend; actualizar en Vercel y en los archivos
+  locales `.env.neon` / `.env.produccion` (gitignoreados, sin valores aquí).
+- **Dominio propio** + verificarlo en Resend (sin él, los correos solo
+  llegan al email del dueño) + fijar AUTH_URL/EMAIL_FROM en Vercel.
+- **Tests (Vitest)** de la lógica crítica: snapshots, medianoche, semanas,
+  centavos, odómetro, rate limiter, borrado 90 días.
+- **Sentry** (errores en producción).
+- Ideas discutidas no implementadas: reporte de impuestos (PDF), gráfico de
+  evolución temporal, "repetir ayer", foto de recibos en gastos, eliminar
+  cuenta inmediata, importar CSV, i18n, rate limit con Redis, y reducir la
+  nav a 5 pestañas (HIG recomienda ≤5; mover Empresas a Ajustes).
+- `prompt-claude-code.md` en la raíz está sin trackear a propósito.
+
+## 7. Comandos útiles
+
+- `npm run dev` — desarrollo (Turbopack). BD local: PostgreSQL 17 Homebrew
+  (`brew services start postgresql@17`), base `calculadoradriver`; otros
+  devs: `docker compose up -d`.
+- `npm run build` / `npm start` · `npm run lint` / `npm run format`
+- `npx prisma migrate dev --name <n>` + `npx prisma generate` + reiniciar dev
+- `npx prisma studio` — inspeccionar BD
+- Migrar PRODUCCIÓN (Neon): `set -a && source .env.neon && set +a &&
+  npx prisma migrate deploy`
+- Deploy: `git push` → Vercel auto-deploya y corre el CI (GitHub Actions,
+  Node 24). La PWA instalada adopta la versión nueva al segundo arranque.
+- Probar cron: `curl -H "Authorization: Bearer $CRON_SECRET"
+  https://calculadoradesalariodriver.vercel.app/api/cron/limpieza`
+- gh CLI: autenticado en la terminal DEL USUARIO (el sandbox de Claude no
+  puede leer el keyring) — los push los ejecuta el usuario.
