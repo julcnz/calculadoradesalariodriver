@@ -56,7 +56,12 @@ export default async function DashboardPage({
   const [user, companies] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { weekStartDay: true, mileageRate: true },
+      select: {
+        weekStartDay: true,
+        mileageRate: true,
+        vehicleMpg: true,
+        fuelPricePerGallon: true,
+      },
     }),
     prisma.company.findMany({
       where: { userId },
@@ -180,6 +185,18 @@ export default async function DashboardPage({
   const deductionCents =
     totalMilesTenths > 0
       ? Math.round((totalMilesTenths * mileageRateCents) / 10)
+      : null;
+
+  // Combustible estimado del período: millas ÷ mpg × precio/galón. Solo
+  // informativo (no altera el neto) y solo con millas y config completas.
+  // Aritmética entera: (mi/10) ÷ (mpg/10) × priceCents = mi × priceCents / mpg.
+  const mpgTenths = user.vehicleMpg ? Math.round(Number(user.vehicleMpg) * 10) : 0;
+  const fuelPriceCents = user.fuelPricePerGallon
+    ? Math.round(Number(user.fuelPricePerGallon) * 100)
+    : 0;
+  const fuelCents =
+    totalMilesTenths > 0 && mpgTenths > 0 && fuelPriceCents > 0
+      ? Math.round((totalMilesTenths * fuelPriceCents) / mpgTenths)
       : null;
 
   // Comparativa con el período anterior.
@@ -392,6 +409,11 @@ export default async function DashboardPage({
               <p className="font-medium text-foreground">
                 🧾 Deducción est.: {formatCurrency(deductionCents / 100)} (
                 {formatCurrency(mileageRateCents / 100)}/mi)
+              </p>
+            )}
+            {fuelCents !== null && (
+              <p className="font-medium text-foreground">
+                ⛽ Combustible est.: {formatCurrency(fuelCents / 100)}
               </p>
             )}
           </CardContent>

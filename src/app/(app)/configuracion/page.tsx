@@ -14,6 +14,7 @@ import {
 import { WeekStartSelect } from "@/components/settings/week-start-select";
 import { GoalsForm } from "@/components/settings/goals-form";
 import { MileageRateForm } from "@/components/settings/mileage-rate-form";
+import { FuelSettingsForm } from "@/components/settings/fuel-settings-form";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -28,6 +29,8 @@ export default async function SettingsPage() {
         name: true,
         weekStartDay: true,
         mileageRate: true,
+        vehicleMpg: true,
+        fuelPricePerGallon: true,
       },
     }),
     prisma.goal.findMany({ where: { userId } }),
@@ -103,6 +106,22 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <MileageRateForm current={user.mileageRate.toFixed(2)} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vehículo y combustible</CardTitle>
+          <CardDescription>
+            Rendimiento de tu vehículo y precio de la gasolina para estimar el
+            costo de combustible de tus millas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FuelSettingsForm
+            currentMpg={user.vehicleMpg?.toFixed(1) ?? ""}
+            currentPrice={user.fuelPricePerGallon?.toFixed(2) ?? ""}
+          />
         </CardContent>
       </Card>
 

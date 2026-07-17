@@ -31,6 +31,51 @@ export async function updateMileageRate(
   return { success: true };
 }
 
+export type FuelSettingsState = {
+  error?: string;
+  success?: boolean;
+} | null;
+
+// Config de combustible: mpg del vehículo y precio por galón. Ambos vacíos
+// significa "sin configurar" (null en BD, regla 2) y apaga la estimación.
+export async function updateFuelSettings(
+  _prevState: FuelSettingsState,
+  formData: FormData
+): Promise<FuelSettingsState> {
+  const userId = await requireUserId();
+
+  const rawMpg = String(formData.get("vehicleMpg") ?? "").trim().replace(",", ".");
+  const rawPrice = String(formData.get("fuelPricePerGallon") ?? "")
+    .trim()
+    .replace(",", ".");
+
+  if (rawMpg === "" && rawPrice === "") {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { vehicleMpg: null, fuelPricePerGallon: null },
+    });
+    revalidatePath("/configuracion");
+    revalidatePath("/dashboard");
+    return { success: true };
+  }
+
+  if (!/^\d{1,2}(\.\d)?$/.test(rawMpg) || Number(rawMpg) <= 0) {
+    return { error: "Ingresa un rendimiento válido entre 0.1 y 99.9 mpg (ej. 22)" };
+  }
+  if (!/^\d{1,2}(\.\d{1,2})?$/.test(rawPrice) || Number(rawPrice) <= 0) {
+    return { error: "Ingresa un precio válido entre 0.01 y 99.99 $/galón (ej. 3.45)" };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { vehicleMpg: rawMpg, fuelPricePerGallon: rawPrice },
+  });
+
+  revalidatePath("/configuracion");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function updateWeekStartDay(weekStartDay: number) {
   const userId = await requireUserId();
 
