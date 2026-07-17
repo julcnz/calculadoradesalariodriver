@@ -4,6 +4,7 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/theme/theme-provider";
+import { ThemeColorSync } from "@/components/theme/theme-color-sync";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -65,7 +66,10 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <SerwistProvider swUrl="/serwist/sw.js">
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <ThemeColorSync />
+            {children}
+          </ThemeProvider>
         </SerwistProvider>
       </body>
     </html>
