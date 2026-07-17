@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Coffee } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import { Button } from "@/components/ui/button";
@@ -128,6 +129,19 @@ export default async function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      <div className="flex flex-col items-center gap-2 pt-2 pb-4 text-sm text-muted-foreground">
+        <p>Hecho por Julián</p>
+        <a
+          href="https://buymeacoffee.com/julcnzs"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 hover:underline"
+        >
+          <Coffee className="size-4" aria-hidden />
+          Dóname un café
+        </a>
+      </div>
     </div>
   );
 }
