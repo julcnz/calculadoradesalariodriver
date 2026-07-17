@@ -26,7 +26,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  computeWeekdayPerformance,
+  type HistoryLogLite,
+} from "@/lib/metrics";
 import { ActivityCalendar } from "@/components/dashboard/activity-calendar";
+import { WeekdayPerformanceTable } from "@/components/dashboard/weekday-performance";
 import { CompanyFilter } from "@/components/dashboard/company-filter";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
 import {
@@ -108,12 +113,34 @@ export default async function DashboardPage({
       },
       _sum: { totalEarned: true },
     }),
-    // Historial completo (ligero) para racha y récords.
+    // Historial completo (ligero) para racha y récords; los campos extra
+    // alimentan la ventana de 12 semanas (rendimiento por día, equilibrio).
+    // Si el volumen crece, separar la ventana en una query con date >= gte.
     prisma.workLog.findMany({
       where: { userId, ...companyWhere },
-      select: { date: true, totalEarned: true },
+      select: {
+        date: true,
+        totalEarned: true,
+        workedMinutes: true,
+        miles: true,
+        entries: { select: { quantity: true } },
+      },
     }),
   ]);
+
+  // Ventana histórica de 12 semanas (alineada a la semana personalizada).
+  const historyWindowStart = addDays(startOfWeek(today, user.weekStartDay), -77);
+  const recentHistory: HistoryLogLite[] = historyLogs
+    .filter((log) => log.date >= historyWindowStart)
+    .map((log) => ({
+      date: log.date,
+      totalEarnedCents: Math.round(Number(log.totalEarned) * 100),
+      workedMinutes: log.workedMinutes,
+      packages: log.entries.reduce((sum, entry) => sum + entry.quantity, 0),
+      milesTenths:
+        log.miles !== null ? Math.round(Number(log.miles) * 10) : null,
+    }));
+  const weekdayRows = computeWeekdayPerformance(recentHistory);
 
   const incomeCents = logs.reduce(
     (acc, log) => acc + Math.round(Number(log.totalEarned) * 100),
@@ -461,6 +488,20 @@ export default async function DashboardPage({
               </span>
             )}
           </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {recentHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Rendimiento por día</CardTitle>
+            <CardDescription>
+              Qué día de la semana te rinde más · últimas 12 semanas.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WeekdayPerformanceTable rows={weekdayRows} />
           </CardContent>
         </Card>
       )}
