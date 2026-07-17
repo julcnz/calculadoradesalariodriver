@@ -28,9 +28,12 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
 - `src/app/(auth)/` — login, registro, recuperar, restablecer/[token],
   verificar/[token] (públicas en el proxy)
 - `src/app/(app)/` — dashboard, registros, rutas, empresas, gastos, guia,
-  configuracion, perfil (protegidas; cada sección tiene `loading.tsx` con
-  skeleton a medida)
-- `src/app/api/` — auth, avatar/[userId], exportar, salir, cron/limpieza
+  configuracion, perfil, simulador (protegidas; cada sección tiene
+  `loading.tsx` con skeleton a medida)
+- `src/app/s/[token]/` — resumen semanal PÚBLICO compartido (fuera de los
+  grupos; con opengraph-image dinámica — fuentes TTF en src/assets/fonts)
+- `src/app/api/` — auth, avatar/[userId], exportar, salir, cron/limpieza,
+  cron/recordatorios
 - `src/components/ui/` — shadcn (no editar a mano salvo necesidad)
 - `src/lib/` — prisma, auth, rate-limit, email, offline-queue,
   `validations/` (Zod compartido), `dates/` (semana personalizada + tz)
@@ -115,6 +118,34 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
   es por instancia (parcial) — Redis/Upstash si crece.
 - Deducción por milla: User.mileageRate (default 0.70, editable en Ajustes).
 - Proyección solo del período EN CURSO (nunca "día").
+- **Métricas históricas compartidas**: `src/lib/metrics.ts`
+  (computeAverages, computeWeekdayPerformance, computeAvgMilesTenthsPerDay)
+  sobre ventana de 12 semanas alineada a la semana personalizada. Las usan
+  la tarjeta de rendimiento por día, el punto de equilibrio y el simulador.
+- **Combustible estimado**: User.vehicleMpg + fuelPricePerGallon (null =
+  sin configurar); solo informativo, JAMÁS altera el neto. Punto de
+  equilibrio: User.monthlyFixedCosts / días del mes de HOY + gasolina
+  estimada/día, entre el $/paquete histórico (ceil).
+- **Push (recordatorio diario)**: VAPID con `web-push`
+  (NEXT_PUBLIC_VAPID_PUBLIC_KEY se hornea en build; regenerar claves
+  invalida TODAS las suscripciones; sin claves se simula en consola como el
+  correo). Modelo PushSubscription; User.reminderTime "HH:mm" local +
+  User.timeZone (IANA persistida por TimezoneSync vía syncTimeZone — el
+  cron no ve cookies). El "reloj" es GitHub Actions cada hora
+  (.github/workflows/recordatorios.yml, secret CRON_SECRET) porque Vercel
+  Hobby solo permite crons diarios; /api/cron/recordatorios usa ventana
+  [hora, hora+75min) en la tz del usuario, no notifica si ya registró su
+  día local, dedupe con reminderLastSentOn y borra suscripciones 404/410.
+  Los handlers push/notificationclick del SW son manuales en src/app/sw.ts.
+- **Semana compartida** (/s/[token]): solo el sha256 del token en BD
+  (SharedWeek; patrón tokens de verificación), un enlace activo por semana
+  (recrear rota el anterior), weekStart SIEMPRE normalizado en server con
+  la semana del dueño. Muestra ingresos/paquetes/días/$-h/racha, SIN gastos
+  ni neto. noindex. El proxy trata /s como /verificar (next() antes de los
+  redirects). Revocación en Ajustes; limpieza purga revocados a 90 días.
+- **turbopack.root fijado en next.config.ts**: con git worktrees hay
+  lockfiles anidados y Turbopack infería la raíz equivocada (dos copias de
+  React → la página no hidrata).
 - Foto de perfil: Bytes en BD (recorte cliente a 256px), servida por
   /api/avatar/[userId] con caché + ?v=timestamp.
 - Formularios: Server Actions + `useActionState` (sin react-hook-form);
@@ -155,10 +186,24 @@ Perfil (foto, datos, contraseña, dispositivos, exportar, suspensión con
 borrado a 90 días) · Guía de inicio (/guia desde Ajustes) · PWA instalable
 con atajos y modo offline con sincronización · Modo claro/oscuro/sistema ·
 Landing pública con SEO/OG · Skeletons por sección · Safe areas
-iOS · Crédito "Hecho por Julián" + Buy Me a Coffee (julcnzs) en Ajustes.
+iOS · Crédito "Hecho por Julián" + Buy Me a Coffee (julcnzs) en Ajustes ·
+Combustible estimado (mpg + $/galón) · Rendimiento por día de la semana
+(12 semanas) · Punto de equilibrio en paquetes/día (gastos fijos
+mensuales) · Simulador de ruta (/simulador, comparado vs histórico) ·
+Recordatorio push diario (hora local, GitHub Actions horario) · Resumen
+semanal compartible (/s/[token] público con OG dinámica, revocable).
 
 ## 6. Pendientes y próximos pasos
 
+- **Desplegar las 6 features nuevas** (julio 2026): (1) migraciones en Neon
+  (`combustible_vehiculo`, `gastos_fijos_mensuales`, `recordatorios_push`,
+  `semanas_compartidas` — aditivas/nullable, seguras antes del deploy);
+  (2) generar claves VAPID de PRODUCCIÓN una sola vez y ponerlas en Vercel
+  (NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT) +
+  redeploy; (3) secret CRON_SECRET en GitHub (Settings → Secrets → Actions,
+  mismo valor que Vercel) y probar el workflow "Recordatorios push" con
+  workflow_dispatch; (4) smoke en iPhone: PWA instalada, activar
+  recordatorio, compartir semana y validar preview OG en WhatsApp.
 - **Rotar secretos** expuestos en la conversación de lanzamiento: password
   de Neon y API key de Resend; actualizar en Vercel y en los archivos
   locales `.env.neon` / `.env.produccion` (gitignoreados, sin valores aquí).
