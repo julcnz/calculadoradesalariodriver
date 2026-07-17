@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AppNavDesktop, AppNavMobile } from "@/components/layout/app-nav";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { OfflineSyncer } from "@/components/layout/offline-syncer";
 import { TimezoneSync } from "@/components/layout/timezone-sync";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -75,8 +76,8 @@ export default async function AppLayout({
       <header className="sticky top-0 z-40 border-b bg-background/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
           <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="text-sm font-bold tracking-tight">
-              💵 Salario Driver
+            <Link href="/dashboard">
+              <BrandLogo />
             </Link>
             <AppNavDesktop />
           </div>

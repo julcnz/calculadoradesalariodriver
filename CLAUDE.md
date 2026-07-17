@@ -125,7 +125,13 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
 - UI en **español**, código (variables/funciones/commits descriptivos) en
   inglés técnico con mensajes de commit en español.
 - Íconos: lucide (SVG), no emojis como íconos (los emojis solo como acento
-  de texto: logo 💵, racha 🔥).
+  de texto: racha 🔥).
+- **Marca**: pin de ubicación + moneda $ — verde #4ade80 sobre #0a0a0a,
+  wordmark "SalarioDriver" en Archivo ExtraBold (--font-archivo, solo para
+  la marca). Componentes en `src/components/brand/brand-logo.tsx`
+  (BrandMark/BrandWordmark/BrandLogo); en claro "Driver" usa green-600 por
+  contraste. Assets: public/icons (manifest), src/app/icon.svg + favicon.ico
+  + apple-icon.png. El ícono de la PWA instalada solo cambia al reinstalar.
 - Diseño: monocromo radix-vega; acento esmeralda SOLO en cifras de dinero
   positivas; skill de diseño de referencia: plugin `ui-ux-pro-max`.
 - Mobile-first; nav inferior en móvil (6 ítems), header en desktop.

@@ -14,6 +14,7 @@ import {
   Zap,
 } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { BrandLogo, BrandMark } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { DashboardPreview } from "@/components/landing/dashboard-preview";
@@ -112,9 +113,7 @@ export default async function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 z-40 border-b bg-background/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
-          <p className="text-sm font-bold tracking-tight whitespace-nowrap">
-            💵 Salario Driver
-          </p>
+          <BrandLogo className="whitespace-nowrap" />
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
@@ -321,7 +320,9 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="border-t pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
-          <p>💵 Calculadora de Salario Driver</p>
+          <p className="flex items-center gap-2">
+            <BrandMark className="size-4" /> Calculadora de Salario Driver
+          </p>
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <Link href="/login" className="hover:text-foreground">
               Iniciar sesión

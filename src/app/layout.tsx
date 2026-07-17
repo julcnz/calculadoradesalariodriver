@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Inter } from "next/font/google";
+import { Archivo, Geist, Geist_Mono, Inter } from "next/font/google";
 import { SerwistProvider } from "@serwist/turbopack/react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -7,6 +7,13 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeColorSync } from "@/components/theme/theme-color-sync";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+
+// Solo para el wordmark de la marca (BrandWordmark).
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: "800",
+  variable: "--font-archivo",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -61,7 +68,8 @@ export default function RootLayout({
         geistSans.variable,
         geistMono.variable,
         "font-sans",
-        inter.variable
+        inter.variable,
+        archivo.variable
       )}
     >
       <body className="flex min-h-full flex-col">
