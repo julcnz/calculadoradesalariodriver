@@ -91,9 +91,9 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
   nivel de módulo + retirar de la cola ANTES de enviar (re-encolar si falla
   la red). OJO: el HMR de dev deja listeners viejos que duplican — probar
   con recarga en frío.
-- **Loading**: `loading.tsx` por sección + spinner ✻ (estilo Claude) en el
-  ícono tocado de la nav vía `useLinkStatus`, con 100ms de retraso
-  anti-parpadeo y prefers-reduced-motion.
+- **Loading**: `loading.tsx` por sección (skeletons). La nav NO cambia el
+  ícono tocado por un spinner: en iOS reemplazar el elemento bajo el dedo
+  a mitad del gesto cancelaba el click (había que tocar dos veces).
 - **Proxy matcher**: debe excluir api, estáticos, `serwist/`, `~offline`,
   `icons/`, manifest y cualquier archivo con extensión (og.png devolvía 307
   al login). Rutas públicas: /, /login, /registro, /recuperar,
@@ -145,7 +145,7 @@ Filtros avanzados + paginación en registros/gastos · Exportación Excel/CSV ·
 Perfil (foto, datos, contraseña, dispositivos, exportar, suspensión con
 borrado a 90 días) · Guía de inicio (/guia desde Ajustes) · PWA instalable
 con atajos y modo offline con sincronización · Modo claro/oscuro/sistema ·
-Landing pública con SEO/OG · Skeletons + spinner de navegación · Safe areas
+Landing pública con SEO/OG · Skeletons por sección · Safe areas
 iOS · Crédito "Hecho por Julián" + Buy Me a Coffee (julcnzs) en Ajustes.
 
 ## 6. Pendientes y próximos pasos
