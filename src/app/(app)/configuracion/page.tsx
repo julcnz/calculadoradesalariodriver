@@ -129,6 +129,21 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Simulador de ruta</CardTitle>
+          <CardDescription>
+            ¿Te ofrecen otra ruta? Compara sus tarifas contra tu histórico
+            real antes de aceptarla.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link href="/simulador">Abrir el simulador</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Gastos fijos mensuales</CardTitle>
           <CardDescription>
             Lo que pagas cada mes trabajes o no. Con esto el dashboard te

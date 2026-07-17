@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Pencil, Plus } from "lucide-react";
+import { Calculator, Pencil, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import { formatCurrency } from "@/lib/format";
@@ -40,14 +40,22 @@ export default async function RoutesPage() {
             Cada ruta tiene sus propias tarifas por paquete.
           </p>
         </div>
-        {companiesCount > 0 && (
-          <Button asChild>
-            <Link href="/rutas/nueva">
-              <Plus className="size-4" />
-              Nueva ruta
+        <div className="flex shrink-0 items-center gap-2">
+          <Button asChild variant="outline">
+            <Link href="/simulador">
+              <Calculator className="size-4" />
+              <span className="hidden sm:inline">Simulador</span>
             </Link>
           </Button>
-        )}
+          {companiesCount > 0 && (
+            <Button asChild>
+              <Link href="/rutas/nueva">
+                <Plus className="size-4" />
+                Nueva ruta
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {companiesCount === 0 ? (
