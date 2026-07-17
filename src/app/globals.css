@@ -128,3 +128,10 @@
     @apply font-sans;
   }
 }
+/* Aparición diferida del spinner de navegación: si la página llega en
+   <100ms no se ve nada (evita parpadeos en navegaciones instantáneas). */
+@keyframes nav-loading-in {
+  to {
+    opacity: 1;
+  }
+}

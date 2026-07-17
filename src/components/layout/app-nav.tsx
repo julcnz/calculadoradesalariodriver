@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Building2,
@@ -9,6 +9,7 @@ import {
   Receipt,
   Route,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,27 @@ const navItems = [
   { href: "/empresas", label: "Empresas", icon: Building2 },
   { href: "/configuracion", label: "Ajustes", icon: Settings },
 ];
+
+// Mientras ESTE enlace navega, el ícono se reemplaza por un asterisco
+// girando (estilo spinner de Claude). Aparece con 100ms de retraso para
+// no parpadear en navegaciones instantáneas.
+function NavIcon({ icon: Icon }: { icon: LucideIcon }) {
+  const { pending } = useLinkStatus();
+
+  if (pending) {
+    return (
+      <span
+        aria-hidden
+        className="flex size-5 items-center justify-center opacity-0 [animation:nav-loading-in_150ms_100ms_forwards]"
+      >
+        <span className="animate-spin text-[17px] leading-none motion-reduce:animate-pulse">
+          ✻
+        </span>
+      </span>
+    );
+  }
+  return <Icon className="size-5" aria-hidden />;
+}
 
 export function AppNavDesktop() {
   const pathname = usePathname();
@@ -50,7 +72,7 @@ export function AppNavMobile() {
     // (inset-bottom) y las esquinas redondeadas en horizontal (left/right).
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden">
       <div className="grid grid-cols-6">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link
@@ -61,7 +83,7 @@ export function AppNavMobile() {
                 active ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <Icon className="size-5" aria-hidden />
+              <NavIcon icon={icon} />
               {label}
             </Link>
           );
