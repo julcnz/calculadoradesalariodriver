@@ -106,6 +106,10 @@ Zod 4 · Recharts 3. Deploy objetivo: Vercel + Neon/Supabase.
   un solo uso). Se envía al registrarse y al cambiar el email; banner con
   reenvío (3/h) en el layout. /verificar/[token] es pública y NO redirige
   con sesión iniciada. No bloquea el uso de la app.
+- Los tokens de email se consumen con BOTÓN (server action), nunca al cargar
+  la página: los escáneres de Gmail/Outlook visitan los enlaces. Y los
+  correos van en HTML (emailLayout en src/lib/email.ts) porque el texto
+  plano PARTE las URLs largas (bug real en producción: token truncado).
 - Suspensión: a los 90 días (SUSPENSION_GRACE_MS) la cuenta se elimina — al
   intentar login vencido, o vía /api/cron/limpieza (Bearer CRON_SECRET,
   programada en vercel.json a diario; también purga tokens/sesiones viejas).

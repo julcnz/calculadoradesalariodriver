@@ -2,9 +2,39 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
-import { issueEmailVerification } from "@/lib/email-verification";
+import {
+  hashVerificationToken,
+  issueEmailVerification,
+} from "@/lib/email-verification";
 import { resolveOrigin } from "@/lib/origin";
 import { rateLimit, RATE_LIMIT_MESSAGE } from "@/lib/rate-limit";
+
+// Consume el token y marca el email como verificado. Se llama desde el
+// BOTÓN de /verificar/[token] — nunca al cargar la página, para que los
+// escáneres de los clientes de correo no gasten el token de un solo uso.
+export async function confirmEmailVerification(
+  token: string
+): Promise<{ ok: boolean }> {
+  const record = await prisma.emailVerificationToken.findUnique({
+    where: { tokenHash: hashVerificationToken(token) },
+  });
+  if (!record || record.usedAt || record.expiresAt < new Date()) {
+    return { ok: false };
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: record.userId },
+      data: { emailVerifiedAt: new Date() },
+    }),
+    prisma.emailVerificationToken.update({
+      where: { id: record.id },
+      data: { usedAt: new Date() },
+    }),
+  ]);
+
+  return { ok: true };
+}
 
 export async function resendVerificationEmail(): Promise<{
   sent?: boolean;

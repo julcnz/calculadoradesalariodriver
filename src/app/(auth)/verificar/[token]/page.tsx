@@ -10,9 +10,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { VerifyEmailConfirm } from "@/components/auth/verify-email-confirm";
 
 export const metadata: Metadata = { title: "Verificar email" };
 
+// Esta página SOLO consulta; el token se consume con el botón (POST).
+// Así los escáneres de enlaces de los correos no lo gastan por accidente.
 export default async function VerifyEmailPage({
   params,
 }: {
@@ -22,40 +25,45 @@ export default async function VerifyEmailPage({
 
   const record = await prisma.emailVerificationToken.findUnique({
     where: { tokenHash: hashVerificationToken(token) },
+    include: { user: { select: { emailVerifiedAt: true } } },
   });
 
-  let verified = false;
-  if (record && !record.usedAt && record.expiresAt > new Date()) {
-    await prisma.$transaction([
-      prisma.user.update({
-        where: { id: record.userId },
-        data: { emailVerifiedAt: new Date() },
-      }),
-      prisma.emailVerificationToken.update({
-        where: { id: record.id },
-        data: { usedAt: new Date() },
-      }),
-    ]);
-    verified = true;
+  if (record?.user.emailVerifiedAt) {
+    return (
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>✅ Email ya verificado</CardTitle>
+          <CardDescription>
+            Este email ya estaba confirmado. Todo en orden.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link href="/dashboard">Ir a la app</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
-  return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>
-          {verified ? "✅ Email verificado" : "El enlace no es válido"}
-        </CardTitle>
-        <CardDescription>
-          {verified
-            ? "Tu email quedó confirmado. ¡Gracias!"
-            : "El enlace expiró o ya fue usado. Puedes pedir uno nuevo desde el aviso dentro de la app."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button asChild className="w-full">
-          <Link href="/dashboard">Ir a la app</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
+  if (!record || record.usedAt || record.expiresAt < new Date()) {
+    return (
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>El enlace no es válido</CardTitle>
+          <CardDescription>
+            El enlace expiró, ya fue usado o llegó incompleto. Pide uno nuevo
+            desde el aviso dentro de la app.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full">
+            <Link href="/dashboard">Ir a la app</Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return <VerifyEmailConfirm token={token} />;
 }

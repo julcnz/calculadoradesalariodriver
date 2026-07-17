@@ -6,9 +6,34 @@ type EmailPayload = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
 };
 
-export async function sendEmail({ to, subject, text }: EmailPayload) {
+// Plantilla HTML simple con botón: los clientes de correo parten las URLs
+// largas en texto plano (Gmail truncó tokens reales), un <a href> nunca.
+export function emailLayout(
+  title: string,
+  bodyLines: string[],
+  ctaLabel: string,
+  ctaUrl: string
+): string {
+  const paragraphs = bodyLines
+    .map(
+      (line) =>
+        `<p style="color:#525252;font-size:14px;line-height:1.6;margin:0 0 12px">${line}</p>`
+    )
+    .join("");
+  return `<!doctype html><html><body style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;padding:24px;margin:0">
+<div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px">
+<p style="font-weight:700;font-size:14px;margin:0 0 16px;color:#0a0a0a">💵 Calculadora de Salario Driver</p>
+<h1 style="font-size:20px;margin:0 0 12px;color:#0a0a0a">${title}</h1>
+${paragraphs}
+<a href="${ctaUrl}" style="display:inline-block;background:#0a0a0a;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;margin:12px 0">${ctaLabel}</a>
+<p style="color:#a3a3a3;font-size:12px;line-height:1.6;margin:16px 0 0">Si el botón no funciona, copia y pega este enlace en tu navegador:<br><a href="${ctaUrl}" style="color:#525252;word-break:break-all">${ctaUrl}</a></p>
+</div></body></html>`;
+}
+
+export async function sendEmail({ to, subject, text, html }: EmailPayload) {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
@@ -39,6 +64,7 @@ export async function sendEmail({ to, subject, text }: EmailPayload) {
       to,
       subject,
       text,
+      ...(html ? { html } : {}),
     }),
   });
 
@@ -60,6 +86,15 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
       "",
       "Si no creaste una cuenta, puedes ignorar este correo.",
     ].join("\n"),
+    html: emailLayout(
+      "¡Bienvenido!",
+      [
+        "Confirma que este email es tuyo con el botón de abajo. El enlace expira en 24 horas.",
+        "Si no creaste una cuenta, puedes ignorar este correo.",
+      ],
+      "Verificar mi email",
+      verifyUrl
+    ),
   });
 }
 
@@ -77,5 +112,14 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
       "",
       "Si no fuiste tú, ignora este correo: tu contraseña no cambia.",
     ].join("\n"),
+    html: emailLayout(
+      "Restablece tu contraseña",
+      [
+        "Recibimos una solicitud para restablecer tu contraseña. El enlace expira en 1 hora.",
+        "Si no fuiste tú, ignora este correo: tu contraseña no cambia.",
+      ],
+      "Elegir nueva contraseña",
+      resetUrl
+    ),
   });
 }
