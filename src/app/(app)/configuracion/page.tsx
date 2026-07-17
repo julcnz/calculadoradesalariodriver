@@ -16,6 +16,7 @@ import { GoalsForm } from "@/components/settings/goals-form";
 import { MileageRateForm } from "@/components/settings/mileage-rate-form";
 import { FuelSettingsForm } from "@/components/settings/fuel-settings-form";
 import { FixedCostsForm } from "@/components/settings/fixed-costs-form";
+import { ReminderSettings } from "@/components/settings/reminder-settings";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -33,6 +34,8 @@ export default async function SettingsPage() {
         vehicleMpg: true,
         fuelPricePerGallon: true,
         monthlyFixedCosts: true,
+        reminderEnabled: true,
+        reminderTime: true,
       },
     }),
     prisma.goal.findMany({ where: { userId } }),
@@ -123,6 +126,22 @@ export default async function SettingsPage() {
           <FuelSettingsForm
             currentMpg={user.vehicleMpg?.toFixed(1) ?? ""}
             currentPrice={user.fuelPricePerGallon?.toFixed(2) ?? ""}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recordatorio diario</CardTitle>
+          <CardDescription>
+            Una notificación a la hora que elijas, solo los días que aún no
+            hayas registrado tu trabajo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ReminderSettings
+            enabled={user.reminderEnabled}
+            time={user.reminderTime ?? ""}
           />
         </CardContent>
       </Card>

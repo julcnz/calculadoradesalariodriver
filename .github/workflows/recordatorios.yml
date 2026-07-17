@@ -1,0 +1,20 @@
+# Dispara el recordatorio push cada hora. Vercel Hobby solo permite crons
+# diarios, así que el "reloj" vive aquí; el endpoint decide a quién tocarle
+# según su hora local (ventana de 75 min que absorbe los retrasos de Actions).
+# Requiere el secret CRON_SECRET (mismo valor que en Vercel).
+name: Recordatorios push
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Invocar /api/cron/recordatorios
+        run: |
+          curl -fsS --max-time 60 \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "https://calculadoradesalariodriver.vercel.app/api/cron/recordatorios"

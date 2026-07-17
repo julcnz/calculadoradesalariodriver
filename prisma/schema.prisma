@@ -21,6 +21,10 @@ model User {
   vehicleMpg         Decimal? @db.Decimal(4, 1) // millas por galón del vehículo; null = sin configurar (regla 2)
   fuelPricePerGallon Decimal? @db.Decimal(5, 2) // $/galón; null = sin configurar
   monthlyFixedCosts  Decimal? @db.Decimal(10, 2) // gastos fijos $/mes para el punto de equilibrio; null = sin configurar
+  reminderEnabled    Boolean  @default(false) // recordatorio push diario para registrar el día
+  reminderTime       String? // "HH:mm" en la hora local del usuario
+  timeZone           String? // IANA persistida (espejo de la cookie tz; la usa el cron)
+  reminderLastSentOn DateTime? @db.Date // último día local notificado (dedupe idempotente)
   avatar          Bytes? // foto de perfil reescalada a 256px en el cliente
   avatarMimeType  String?
   avatarUpdatedAt DateTime?
@@ -37,6 +41,21 @@ model User {
   resetTokens        PasswordResetToken[]
   verificationTokens EmailVerificationToken[]
   sessions           UserSession[]
+  pushSubscriptions  PushSubscription[]
+}
+
+// Suscripción Web Push de un navegador/dispositivo (VAPID).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Sesión iniciada en un dispositivo. El JWT lleva el id; el layout de (app)
