@@ -18,7 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # Igual que la máquina que genera package-lock.json (npm 11);
+          # npm 10 valida el lock distinto y falla con EUSAGE.
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run lint
