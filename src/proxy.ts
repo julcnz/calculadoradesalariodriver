@@ -20,6 +20,12 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
+  // /s/[token] es el resumen semanal público compartido: accesible con y
+  // sin sesión (mismo tratamiento que /verificar).
+  if (nextUrl.pathname === "/s" || nextUrl.pathname.startsWith("/s/")) {
+    return NextResponse.next();
+  }
+
   if (isAuthPage && isLoggedIn) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }

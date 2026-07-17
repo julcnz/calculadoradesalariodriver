@@ -35,6 +35,7 @@ import {
 } from "@/lib/metrics";
 import { ActivityCalendar } from "@/components/dashboard/activity-calendar";
 import { WeekdayPerformanceTable } from "@/components/dashboard/weekday-performance";
+import { ShareWeekButton } from "@/components/dashboard/share-week-button";
 import { CompanyFilter } from "@/components/dashboard/company-filter";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
 import {
@@ -356,13 +357,18 @@ export default async function DashboardPage({
         )}
       </div>
 
-      <PeriodSelector
-        periodo={periodo}
-        date={date}
-        today={today}
-        weekStartDay={user.weekStartDay}
-        empresa={companyId}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PeriodSelector
+          periodo={periodo}
+          date={date}
+          today={today}
+          weekStartDay={user.weekStartDay}
+          empresa={companyId}
+        />
+        {periodo === "semana" && (
+          <ShareWeekButton weekStartParam={toDateParam(start)} />
+        )}
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>

@@ -17,13 +17,16 @@ import { MileageRateForm } from "@/components/settings/mileage-rate-form";
 import { FuelSettingsForm } from "@/components/settings/fuel-settings-form";
 import { FixedCostsForm } from "@/components/settings/fixed-costs-form";
 import { ReminderSettings } from "@/components/settings/reminder-settings";
+import { SharedWeeksList } from "@/components/settings/shared-weeks-list";
+import { addDays } from "@/lib/dates/week";
+import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Configuración" };
 
 export default async function SettingsPage() {
   const userId = await requireUserId();
 
-  const [user, goals] = await Promise.all([
+  const [user, goals, sharedWeeks] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: {
@@ -39,6 +42,11 @@ export default async function SettingsPage() {
       },
     }),
     prisma.goal.findMany({ where: { userId } }),
+    prisma.sharedWeek.findMany({
+      where: { userId, revokedAt: null },
+      orderBy: { weekStart: "desc" },
+      select: { id: true, weekStart: true, createdAt: true },
+    }),
   ]);
 
   const goalAmount = (period: string) =>
@@ -171,6 +179,25 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <FixedCostsForm current={user.monthlyFixedCosts?.toFixed(2) ?? ""} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Semanas compartidas</CardTitle>
+          <CardDescription>
+            Enlaces públicos de resumen que has creado. Cualquiera con el
+            enlace puede ver los ingresos de esa semana.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SharedWeeksList
+            items={sharedWeeks.map((week) => ({
+              id: week.id,
+              weekLabel: `Semana del ${formatDate(week.weekStart)} al ${formatDate(addDays(week.weekStart, 6))}`,
+              createdLabel: formatDate(week.createdAt),
+            }))}
+          />
         </CardContent>
       </Card>
 

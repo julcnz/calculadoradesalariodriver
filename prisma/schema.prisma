@@ -42,6 +42,23 @@ model User {
   verificationTokens EmailVerificationToken[]
   sessions           UserSession[]
   pushSubscriptions  PushSubscription[]
+  sharedWeeks        SharedWeek[]
+}
+
+// Enlace público de resumen semanal (/s/[token]). Solo guardamos el hash
+// del token (patrón EmailVerificationToken); el token en claro solo existe
+// en la URL que se comparte. Un enlace activo por semana; revocable.
+model SharedWeek {
+  id        String    @id @default(cuid())
+  userId    String
+  weekStart DateTime  @db.Date
+  tokenHash String    @unique
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Suscripción Web Push de un navegador/dispositivo (VAPID).

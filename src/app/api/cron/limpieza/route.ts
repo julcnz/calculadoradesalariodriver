@@ -34,6 +34,10 @@ export async function GET(request: Request) {
       prisma.emailVerificationToken.deleteMany({
         where: { expiresAt: { lt: now } },
       }),
+      // Enlaces de resumen compartido revocados hace más de 90 días.
+      prisma.sharedWeek.deleteMany({
+        where: { revokedAt: { lt: suspensionCutoff } },
+      }),
     ]);
 
   return NextResponse.json({
