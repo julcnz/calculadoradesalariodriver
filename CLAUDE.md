@@ -65,9 +65,12 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
   NUNCA `todayAsBusinessDate()` en servidor (Vercel es UTC). Fechas de
   negocio = fecha pura @db.Date (medianoche UTC); week.ts opera en UTC.
 - **Dinero**: agregaciones en centavos (`Math.round(x*100)`); Decimal en BD.
-- **theme-color de iOS**: `<ThemeColorSync/>` colapsa los metas en uno que
-  sigue el tema DE LA APP (next-themes), no el del sistema — si no, la barra
-  de estado sale gris con teléfono oscuro + app clara.
+- **theme-color de iOS**: `<ThemeColorSync/>` mantiene UN meta PROPIO
+  (data-theme-color-sync) que sigue el tema DE LA APP (next-themes), no el
+  del sistema. `viewport.themeColor` NO se declara y JAMÁS mutar/borrar
+  metas renderizados por Next: React 19 los gestiona y crashea el commit de
+  cada navegación (removeChild sobre null) — ese era el bug del doble toque
+  en la nav.
 - **Safe areas iOS (PWA)**: `viewportFit: "cover"` es OBLIGATORIO (sin él
   env(safe-area-inset-*)=0 y el home indicator tapa la nav inferior).
   statusBarStyle black-translucent. Insets aplicados en headers, nav
@@ -91,9 +94,9 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
   nivel de módulo + retirar de la cola ANTES de enviar (re-encolar si falla
   la red). OJO: el HMR de dev deja listeners viejos que duplican — probar
   con recarga en frío.
-- **Loading**: `loading.tsx` por sección (skeletons). La nav NO cambia el
-  ícono tocado por un spinner: en iOS reemplazar el elemento bajo el dedo
-  a mitad del gesto cancelaba el click (había que tocar dos veces).
+- **Loading**: `loading.tsx` por sección (skeletons), sin spinner en la
+  nav (decisión de UX). El bug del doble toque NO era el spinner: era
+  ThemeColorSync mutando metas de React (ver theme-color de iOS).
 - **Proxy matcher**: debe excluir api, estáticos, `serwist/`, `~offline`,
   `icons/`, manifest y cualquier archivo con extensión (og.png devolvía 307
   al login). Rutas públicas: /, /login, /registro, /recuperar,

@@ -37,10 +37,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
-  ],
+  // theme-color NO se declara aquí: React 19 gestiona los metas que
+  // renderiza Next y <ThemeColorSync/> necesita uno propio. Mutar o borrar
+  // los de React crashea la navegación (removeChild sobre null) y obligaba
+  // a tocar dos veces cada enlace.
   // Requisito de iOS: sin "cover", env(safe-area-inset-*) vale 0 y el
   // home indicator tapa la navegación inferior en la PWA instalada.
   viewportFit: "cover",
