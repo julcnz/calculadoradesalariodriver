@@ -110,7 +110,7 @@ export default async function LandingPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-40 border-b bg-background/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4">
           <p className="text-sm font-bold tracking-tight whitespace-nowrap">
             💵 Salario Driver
@@ -319,7 +319,7 @@ export default async function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t">
+      <footer className="border-t pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
           <p>💵 Calculadora de Salario Driver</p>
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">

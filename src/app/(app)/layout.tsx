@@ -72,7 +72,7 @@ export default async function AppLayout({
     <div className="flex min-h-dvh flex-col">
       <TimezoneSync />
       <OfflineSyncer />
-      <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <header className="sticky top-0 z-40 border-b bg-background/95 pt-[env(safe-area-inset-top)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="text-sm font-bold tracking-tight">
@@ -91,7 +91,7 @@ export default async function AppLayout({
         </div>
       </header>
       {!user.emailVerifiedAt && <VerifyEmailBanner />}
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-24 md:pb-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-6">
         {children}
       </main>
       <AppNavMobile />

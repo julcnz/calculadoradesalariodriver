@@ -28,7 +28,9 @@ export const metadata: Metadata = {
   applicationName: "Salario Driver",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    // La app dibuja DETRÁS de la barra de estado; los safe-area insets
+    // (env()) hacen el resto. Se ve nativa en claro y oscuro.
+    statusBarStyle: "black-translucent",
     title: "Salario Driver",
   },
 };
@@ -38,6 +40,9 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
   ],
+  // Requisito de iOS: sin "cover", env(safe-area-inset-*) vale 0 y el
+  // home indicator tapa la navegación inferior en la PWA instalada.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

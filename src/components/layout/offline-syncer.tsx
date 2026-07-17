@@ -74,7 +74,7 @@ export function OfflineSyncer() {
   if (syncedCount === 0) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-4 md:bottom-6">
+    <div className="fixed inset-x-0 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 flex justify-center px-4 md:bottom-6">
       <div className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 text-sm shadow-lg">
         <CloudUpload className="size-4 text-muted-foreground" />
         <span>
