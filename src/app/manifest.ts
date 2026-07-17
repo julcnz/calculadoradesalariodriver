@@ -9,7 +9,9 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
-    theme_color: "#0a0a0a",
+    // iOS/Android hornean este color al instalar; en runtime lo gobierna
+    // <ThemeColorSync/>. Debe coincidir con background_color (tema claro).
+    theme_color: "#ffffff",
     lang: "es",
     shortcuts: [
       {
