@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import {
   addDays,
+  endOfMonth,
   getPeriodRange,
   isPeriodType,
   shiftPeriod,
@@ -27,6 +28,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  computeAverages,
+  computeAvgMilesTenthsPerDay,
   computeWeekdayPerformance,
   type HistoryLogLite,
 } from "@/lib/metrics";
@@ -66,6 +69,7 @@ export default async function DashboardPage({
         mileageRate: true,
         vehicleMpg: true,
         fuelPricePerGallon: true,
+        monthlyFixedCosts: true,
       },
     }),
     prisma.company.findMany({
@@ -225,6 +229,31 @@ export default async function DashboardPage({
     totalMilesTenths > 0 && mpgTenths > 0 && fuelPriceCents > 0
       ? Math.round((totalMilesTenths * fuelPriceCents) / mpgTenths)
       : null;
+
+  // Punto de equilibrio: paquetes/día para cubrir los gastos fijos. Usa el
+  // mes de HOY (no el del período navegado): es una cifra diaria estable.
+  const histAverages = computeAverages(recentHistory);
+  const breakeven = (() => {
+    if (user.monthlyFixedCosts === null) return null;
+    const fixedCents = Math.round(Number(user.monthlyFixedCosts) * 100);
+    const daysInMonth = endOfMonth(today).getUTCDate();
+    const dailyFixedCents = Math.round(fixedCents / daysInMonth);
+    const avgMilesTenths = computeAvgMilesTenthsPerDay(recentHistory);
+    const fuelPerDayCents =
+      avgMilesTenths !== null && mpgTenths > 0 && fuelPriceCents > 0
+        ? Math.round((avgMilesTenths * fuelPriceCents) / mpgTenths)
+        : 0;
+    const dailyCostCents = dailyFixedCents + fuelPerDayCents;
+    return {
+      dailyFixedCents,
+      fuelPerDayCents,
+      dailyCostCents,
+      // Math.ceil: mejor prometer un paquete de más que quedarse corto.
+      packagesNeeded: histAverages.perPackageCents
+        ? Math.ceil(dailyCostCents / histAverages.perPackageCents)
+        : null,
+    };
+  })();
 
   // Comparativa con el período anterior.
   const prevCents = Math.round(
@@ -446,6 +475,38 @@ export default async function DashboardPage({
           </CardContent>
         </Card>
       </div>
+
+      {breakeven && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Punto de equilibrio</CardDescription>
+            <CardTitle className="text-2xl">
+              {breakeven.packagesNeeded !== null
+                ? `~${breakeven.packagesNeeded} paquetes/día`
+                : "Faltan datos"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs text-muted-foreground">
+            {breakeven.packagesNeeded !== null ? (
+              <p>
+                Para cubrir {formatCurrency(breakeven.dailyCostCents / 100)}{" "}
+                diarios ({formatCurrency(breakeven.dailyFixedCents / 100)} de
+                gastos fijos
+                {breakeven.fuelPerDayCents > 0 &&
+                  ` + ${formatCurrency(breakeven.fuelPerDayCents / 100)} de gasolina estimada`}
+                ) con tu promedio histórico de{" "}
+                {formatCurrency((histAverages.perPackageCents ?? 0) / 100)}
+                /paquete.
+              </p>
+            ) : (
+              <p>
+                Registra días con paquetes para conocer tu $/paquete histórico
+                y calcular cuántos necesitas al día.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {historyLogs.length > 0 && (
         <Card>

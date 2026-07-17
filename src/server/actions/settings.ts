@@ -76,6 +76,47 @@ export async function updateFuelSettings(
   return { success: true };
 }
 
+export type FixedCostsState = {
+  error?: string;
+  success?: boolean;
+} | null;
+
+// Gastos fijos mensuales (renta, seguro, teléfono…) para el punto de
+// equilibrio. Vacío = sin configurar (null, regla 2) y oculta la tarjeta.
+export async function updateMonthlyFixedCosts(
+  _prevState: FixedCostsState,
+  formData: FormData
+): Promise<FixedCostsState> {
+  const userId = await requireUserId();
+
+  const raw = String(formData.get("monthlyFixedCosts") ?? "")
+    .trim()
+    .replace(",", ".");
+
+  if (raw === "") {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { monthlyFixedCosts: null },
+    });
+    revalidatePath("/configuracion");
+    revalidatePath("/dashboard");
+    return { success: true };
+  }
+
+  if (!/^\d{1,8}(\.\d{1,2})?$/.test(raw) || Number(raw) <= 0) {
+    return { error: "Ingresa un monto mensual válido (ej. 850 o 850.50)" };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { monthlyFixedCosts: raw },
+  });
+
+  revalidatePath("/configuracion");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
 export async function updateWeekStartDay(weekStartDay: number) {
   const userId = await requireUserId();
 

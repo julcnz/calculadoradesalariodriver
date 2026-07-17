@@ -20,6 +20,7 @@ model User {
   mileageRate     Decimal   @default(0.70) @db.Decimal(4, 2) // $/milla para la deducción estimada (tarifa IRS)
   vehicleMpg         Decimal? @db.Decimal(4, 1) // millas por galón del vehículo; null = sin configurar (regla 2)
   fuelPricePerGallon Decimal? @db.Decimal(5, 2) // $/galón; null = sin configurar
+  monthlyFixedCosts  Decimal? @db.Decimal(10, 2) // gastos fijos $/mes para el punto de equilibrio; null = sin configurar
   avatar          Bytes? // foto de perfil reescalada a 256px en el cliente
   avatarMimeType  String?
   avatarUpdatedAt DateTime?

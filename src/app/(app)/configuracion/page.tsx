@@ -15,6 +15,7 @@ import { WeekStartSelect } from "@/components/settings/week-start-select";
 import { GoalsForm } from "@/components/settings/goals-form";
 import { MileageRateForm } from "@/components/settings/mileage-rate-form";
 import { FuelSettingsForm } from "@/components/settings/fuel-settings-form";
+import { FixedCostsForm } from "@/components/settings/fixed-costs-form";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -31,6 +32,7 @@ export default async function SettingsPage() {
         mileageRate: true,
         vehicleMpg: true,
         fuelPricePerGallon: true,
+        monthlyFixedCosts: true,
       },
     }),
     prisma.goal.findMany({ where: { userId } }),
@@ -122,6 +124,19 @@ export default async function SettingsPage() {
             currentMpg={user.vehicleMpg?.toFixed(1) ?? ""}
             currentPrice={user.fuelPricePerGallon?.toFixed(2) ?? ""}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Gastos fijos mensuales</CardTitle>
+          <CardDescription>
+            Lo que pagas cada mes trabajes o no. Con esto el dashboard te
+            muestra tu punto de equilibrio en paquetes por día.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FixedCostsForm current={user.monthlyFixedCosts?.toFixed(2) ?? ""} />
         </CardContent>
       </Card>
 
