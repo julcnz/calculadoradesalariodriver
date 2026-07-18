@@ -10,7 +10,10 @@ la app calcula ganancia neta real, promedios y métricas en un dashboard
 filtrable por día/semana personalizada/mes/trimestre/año. Open source
 (**AGPL-3.0**), UI en español, código en inglés, preparada para i18n futura.
 
-**EN PRODUCCIÓN**: https://calculadoradesalariodriver.vercel.app ·
+**EN PRODUCCIÓN**: https://dc.xhuian.com (dominio propio; CNAME `dc` en la
+zona DNS de Hostinger → Vercel) · https://calculadoradesalariodriver.vercel.app
+sigue activo como dominio secundario (la PWA/push original del dueño vive ahí
+y el workflow de recordatorios lo invoca) ·
 Repo: https://github.com/julcnz/calculadoradesalariodriver (usuario: julcnz)
 
 ## 2. Stack y arquitectura
@@ -207,8 +210,12 @@ semanal compartible (/s/[token] público con OG dinámica, revocable).
 - **Rotar secretos** expuestos en la conversación de lanzamiento: password
   de Neon y API key de Resend; actualizar en Vercel y en los archivos
   locales `.env.neon` / `.env.produccion` (gitignoreados, sin valores aquí).
-- **Dominio propio** + verificarlo en Resend (sin él, los correos solo
-  llegan al email del dueño) + fijar AUTH_URL/EMAIL_FROM en Vercel.
+- Dominio propio LISTO (dc.xhuian.com, jul 2026). Falta: fijar
+  `AUTH_URL=https://dc.xhuian.com` en Vercel (+ redeploy), verificar
+  xhuian.com en Resend (sin eso los correos solo llegan al email del dueño)
+  + `EMAIL_FROM` con el dominio, y decidir si vercel.app redirige al
+  dominio propio (esperar a reinstalar la PWA del dueño en el dominio
+  nuevo: el push va atado al origen).
 - **Tests (Vitest)** de la lógica crítica: snapshots, medianoche, semanas,
   centavos, odómetro, rate limiter, borrado 90 días.
 - **Sentry** (errores en producción).
