@@ -25,7 +25,7 @@ export function emailLayout(
     .join("");
   return `<!doctype html><html><body style="font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;padding:24px;margin:0">
 <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px">
-<p style="font-weight:800;font-size:15px;letter-spacing:-0.02em;margin:0 0 16px;color:#0a0a0a">Salario<span style="color:#16a34a">Driver</span></p>
+<p style="font-weight:800;font-size:15px;letter-spacing:-0.02em;margin:0 0 16px;color:#0a0a0a">Driver<span style="color:#16a34a">Calculator</span></p>
 <h1 style="font-size:20px;margin:0 0 12px;color:#0a0a0a">${title}</h1>
 ${paragraphs}
 <a href="${ctaUrl}" style="display:inline-block;background:#0a0a0a;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;margin:12px 0">${ctaLabel}</a>
@@ -76,7 +76,7 @@ export async function sendEmail({ to, subject, text, html }: EmailPayload) {
 export async function sendVerificationEmail(to: string, verifyUrl: string) {
   await sendEmail({
     to,
-    subject: "Verifica tu email — Calculadora de Salario Driver",
+    subject: "Verifica tu email — Driver Calculator",
     text: [
       "¡Bienvenido!",
       "",
@@ -101,7 +101,7 @@ export async function sendVerificationEmail(to: string, verifyUrl: string) {
 export async function sendPasswordResetEmail(to: string, resetUrl: string) {
   await sendEmail({
     to,
-    subject: "Restablece tu contraseña — Calculadora de Salario Driver",
+    subject: "Restablece tu contraseña — Driver Calculator",
     text: [
       "Hola,",
       "",

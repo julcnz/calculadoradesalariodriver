@@ -28,18 +28,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.AUTH_URL ?? "http://localhost:3000"),
   title: {
-    default: "Calculadora de Salario Driver",
-    template: "%s · Calculadora de Salario Driver",
+    default: "Driver Calculator",
+    template: "%s · Driver Calculator",
   },
   description:
     "Registra tu trabajo diario como conductor de reparto y calcula tus ganancias, gastos y métricas.",
-  applicationName: "Salario Driver",
+  applicationName: "Driver Calculator",
   appleWebApp: {
     capable: true,
     // La app dibuja DETRÁS de la barra de estado; los safe-area insets
     // (env()) hacen el resto. Se ve nativa en claro y oscuro.
     statusBarStyle: "black-translucent",
-    title: "Salario Driver",
+    title: "Driver Calc",
   },
 };
 

@@ -1,4 +1,4 @@
-# Calculadora de Salario Driver
+# Driver Calculator
 
 Aplicación web progresiva (PWA) para conductores de reparto independientes.
 Registra tu trabajo diario —paquetes entregados por tipo de tarifa, millas y
@@ -43,7 +43,7 @@ cp .env.example .env
 | `AUTH_SECRET`    | Secreto de sesión. Genera uno con `openssl rand -base64 32`                                |
 | `AUTH_URL`       | (Opcional) URL pública de la app; en local se autodetecta                                  |
 | `RESEND_API_KEY` | (Opcional) API key de [Resend](https://resend.com) para los correos de recuperación de contraseña. Sin ella, los correos se imprimen en la consola del servidor (útil en desarrollo) |
-| `EMAIL_FROM`     | (Opcional) Remitente de los correos, ej. `Salario Driver <no-reply@tudominio.com>`         |
+| `EMAIL_FROM`     | (Opcional) Remitente de los correos, ej. `Driver Calculator <no-reply@tudominio.com>`         |
 
 ### 2. Base de datos
 

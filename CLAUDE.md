@@ -161,10 +161,12 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
 - Íconos: lucide (SVG), no emojis como íconos (los emojis solo como acento
   de texto: racha 🔥).
 - **Marca**: pin de ubicación + moneda $ — verde #4ade80 sobre #0a0a0a,
-  wordmark "SalarioDriver" en Archivo ExtraBold (--font-archivo, solo para
-  la marca). Componentes en `src/components/brand/brand-logo.tsx`
-  (BrandMark/BrandWordmark/BrandLogo); en claro "Driver" usa green-600 por
-  contraste. Assets: public/icons (manifest), src/app/icon.svg + favicon.ico
+  wordmark "DriverCalculator" en Archivo ExtraBold (--font-archivo, solo
+  para la marca). Componentes en `src/components/brand/brand-logo.tsx`
+  (BrandMark/BrandWordmark/BrandLogo); en claro "Calculator" usa green-600
+  por contraste. **Nombre público: "Driver Calculator"** (jul 2026; short
+  name/ícono iOS: "Driver Calc"); el repo, dominios y nombres internos
+  conservan el nombre viejo. Assets: public/icons (manifest), src/app/icon.svg + favicon.ico
   + apple-icon.png. El ícono de la PWA instalada solo cambia al reinstalar.
 - Diseño: monocromo radix-vega; acento esmeralda SOLO en cifras de dinero
   positivas; skill de diseño de referencia: plugin `ui-ux-pro-max`.

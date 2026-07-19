@@ -44,7 +44,7 @@ self.addEventListener("push", (event) => {
     // payload no-JSON: se ignora y se usan los textos por defecto
   }
   event.waitUntil(
-    self.registration.showNotification(data.title ?? "SalarioDriver", {
+    self.registration.showNotification(data.title ?? "Driver Calculator", {
       body: data.body ?? "Registra tu día en un minuto.",
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",

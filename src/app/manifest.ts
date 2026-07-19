@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Calculadora de Salario Driver",
-    short_name: "Salario Driver",
+    name: "Driver Calculator",
+    short_name: "Driver Calc",
     description:
       "Registra tu trabajo diario como conductor de reparto y calcula tus ganancias.",
     start_url: "/",

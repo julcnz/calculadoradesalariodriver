@@ -22,7 +22,7 @@ import { DashboardPreview } from "@/components/landing/dashboard-preview";
 const GITHUB_URL = "https://github.com/julcnz/calculadoradesalariodriver";
 
 export const metadata: Metadata = {
-  title: "Calculadora de Salario Driver — ¿Cuánto ganaste realmente?",
+  title: "Driver Calculator — ¿Cuánto ganaste realmente?",
   description:
     "La app gratuita y open source para conductores de reparto independientes: registra tus entregas por tarifa, resta tus gastos y conoce tu ganancia neta real. Funciona sin conexión y se instala sin tiendas.",
   openGraph: {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
       "Registra tus entregas, resta tus gastos y conoce tu ganancia neta real. Gratis, open source y sin tiendas de apps.",
     type: "website",
     locale: "es",
-    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Calculadora de Salario Driver" }],
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Driver Calculator" }],
   },
   twitter: {
     card: "summary_large_image",
@@ -321,7 +321,7 @@ export default async function LandingPage() {
       <footer className="border-t pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row">
           <p className="flex items-center gap-2">
-            <BrandMark className="size-4" /> Calculadora de Salario Driver
+            <BrandMark className="size-4" /> Driver Calculator
           </p>
           <nav className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <Link href="/login" className="hover:text-foreground">

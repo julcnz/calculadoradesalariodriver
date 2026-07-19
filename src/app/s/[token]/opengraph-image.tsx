@@ -10,7 +10,7 @@ import { loadSharedWeekSummary } from "@/lib/shared-week";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Resumen semanal · SalarioDriver";
+export const alt = "Resumen semanal · Driver Calculator";
 
 const BRAND_GREEN = "#4ade80";
 const BRAND_BLACK = "#0a0a0a";
@@ -47,8 +47,8 @@ function Wordmark({ fontSize }: { fontSize: number }) {
         letterSpacing: "-0.02em",
       }}
     >
-      <span style={{ color: "#fafafa" }}>Salario</span>
-      <span style={{ color: BRAND_GREEN }}>Driver</span>
+      <span style={{ color: "#fafafa" }}>Driver</span>
+      <span style={{ color: BRAND_GREEN }}>Calculator</span>
     </div>
   );
 }

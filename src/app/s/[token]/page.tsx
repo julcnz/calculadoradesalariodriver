@@ -19,8 +19,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!summary) {
     return { title: "Resumen no disponible", robots: { index: false } };
   }
-  const title = `Semana del ${formatDate(summary.weekStart)} · SalarioDriver`;
-  const description = `${formatCurrency(summary.incomeCents / 100)} en ${summary.packages} paquetes. Calculado con SalarioDriver, la app gratuita para conductores de reparto.`;
+  const title = `Semana del ${formatDate(summary.weekStart)} · Driver Calculator`;
+  const description = `${formatCurrency(summary.incomeCents / 100)} en ${summary.packages} paquetes. Calculado con Driver Calculator, la app gratuita para conductores de reparto.`;
   return {
     title,
     description,
@@ -94,7 +94,7 @@ export default async function SharedWeekPage({ params }: Props) {
         <div className="rounded-xl border bg-muted/40 p-5">
           <p className="flex items-center gap-2 text-sm font-medium">
             <BrandMark className="size-5" />
-            Calculado con SalarioDriver
+            Calculado con Driver Calculator
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             La app gratuita y open source con la que los conductores de

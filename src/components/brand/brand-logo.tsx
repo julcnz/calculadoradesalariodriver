@@ -19,8 +19,8 @@ export function BrandMark({ className }: { className?: string }) {
   );
 }
 
-// "Driver" usa el verde de marca en oscuro; en claro baja a green-600 para
-// mantener contraste sobre fondo blanco (#4ade80 no llega a AA en claro).
+// "Calculator" usa el verde de marca en oscuro; en claro baja a green-600
+// para mantener contraste sobre fondo blanco (#4ade80 no llega a AA en claro).
 export function BrandWordmark({ className }: { className?: string }) {
   return (
     <span
@@ -29,8 +29,8 @@ export function BrandWordmark({ className }: { className?: string }) {
         className
       )}
     >
-      Salario
-      <span className="text-green-600 dark:text-[#4ade80]">Driver</span>
+      Driver
+      <span className="text-green-600 dark:text-[#4ade80]">Calculator</span>
     </span>
   );
 }
