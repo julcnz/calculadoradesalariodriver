@@ -205,16 +205,13 @@ src/lib/taxes.ts).
 
 ## 6. Pendientes y próximos pasos
 
-- **Desplegar features pendientes**: (1) migraciones en Neon
-  (`combustible_vehiculo`, `gastos_fijos_mensuales`, `recordatorios_push`,
-  `semanas_compartidas`, `seccion_impuestos` — aditivas, seguras antes del
-  deploy); (2) generar claves VAPID de PRODUCCIÓN una sola vez y ponerlas en
-  Vercel (NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT) +
-  redeploy; (3) **secret CRON_SECRET en GitHub — CONFIRMADO faltante (18
-  jul): el workflow corre cada hora y recibe 401 con Bearer vacío**; crearlo
-  en Settings → Secrets → Actions con el valor de .env.produccion y probar
-  con workflow_dispatch; (4) smoke en iPhone: PWA instalada, activar
-  recordatorio, compartir semana y validar preview OG en WhatsApp.
+- **Despliegue**: migraciones en Neon al día (todas aplicadas hasta
+  `seccion_impuestos`, 18 jul) y CRON_SECRET creado en GitHub (18 jul; el
+  workflow "Recordatorios push" ya pasa en verde con workflow_dispatch).
+  Falta: (a) confirmar que las claves VAPID de producción están en Vercel
+  (si el toggle del recordatorio se activó sin error en el iPhone, están);
+  (b) smoke en iPhone: llegada real del recordatorio a la hora configurada,
+  compartir semana y validar preview OG en WhatsApp.
 - **Rotar secretos** expuestos en la conversación de lanzamiento: password
   de Neon y API key de Resend; actualizar en Vercel y en los archivos
   locales `.env.neon` / `.env.produccion` (gitignoreados, sin valores aquí).
