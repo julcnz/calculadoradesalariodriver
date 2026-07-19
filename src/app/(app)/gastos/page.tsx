@@ -4,6 +4,7 @@ import { Pencil, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,51 +101,56 @@ export default async function ExpensesPage({
       </div>
 
       {categories.length > 0 && (
-        <form
-          method="GET"
-          className="flex flex-wrap items-center gap-2 rounded-lg border p-3"
-        >
-          <select
-            name="categoria"
-            defaultValue={categoriaId ?? ""}
-            className={selectClass}
-          >
-            <option value="">Todas las categorías</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <Input
-            type="date"
-            name="desde"
-            defaultValue={desde}
-            aria-label="Desde"
-            className="w-fit"
-          />
-          <Input
-            type="date"
-            name="hasta"
-            defaultValue={hasta}
-            aria-label="Hasta"
-            className="w-fit"
-          />
-          <Input
-            name="q"
-            defaultValue={q}
-            placeholder="Buscar en notas…"
-            className="w-40"
-          />
-          <Button type="submit" variant="outline" size="sm">
-            <Search className="size-4" />
-            Filtrar
-          </Button>
-          {hasFilters && (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/gastos">Limpiar</Link>
+        <form method="GET" className="space-y-3 rounded-lg border p-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                Categoría
+              </span>
+              <select
+                name="categoria"
+                defaultValue={categoriaId ?? ""}
+                className={cn(selectClass, "w-full")}
+              >
+                <option value="">Todas</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                Desde
+              </span>
+              <Input type="date" name="desde" defaultValue={desde} />
+            </label>
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">
+                Hasta
+              </span>
+              <Input type="date" name="hasta" defaultValue={hasta} />
+            </label>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              name="q"
+              defaultValue={q}
+              placeholder="Buscar en notas…"
+              aria-label="Buscar en notas"
+              className="min-w-0 flex-1 sm:max-w-56"
+            />
+            <Button type="submit" variant="outline">
+              <Search className="size-4" />
+              Filtrar
             </Button>
-          )}
+            {hasFilters && (
+              <Button asChild variant="ghost">
+                <Link href="/gastos">Limpiar</Link>
+              </Button>
+            )}
+          </div>
         </form>
       )}
 
@@ -199,19 +205,20 @@ export default async function ExpensesPage({
                       </Badge>
                     </div>
                     {expense.note && (
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-footnote text-muted-foreground">
                         {expense.note}
                       </p>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <p className="text-base font-bold">
+                  <div className="flex shrink-0 items-center gap-1">
+                    <p className="text-base font-bold tabular-nums">
                       −{formatCurrency(expense.amount.toFixed(2))}
                     </p>
                     <Button
                       asChild
                       variant="ghost"
                       size="icon"
+                      className="-my-2 -mr-3 size-11"
                       aria-label="Editar gasto"
                     >
                       <Link href={`/gastos/${expense.id}/editar`}>

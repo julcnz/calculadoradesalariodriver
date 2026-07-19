@@ -134,7 +134,7 @@ export default async function TaxesPage({
       <Card>
         <CardHeader className="pb-2">
           <CardDescription>Total estimado a apartar en {year}</CardDescription>
-          <CardTitle className="text-3xl">
+          <CardTitle className="text-3xl tabular-nums">
             {formatCurrency(annual.totalCents / 100)}
           </CardTitle>
           {annual.effectivePct !== null && (
@@ -143,7 +143,7 @@ export default async function TaxesPage({
             </CardDescription>
           )}
         </CardHeader>
-        <CardContent className="space-y-1 text-xs text-muted-foreground">
+        <CardContent className="space-y-1 text-footnote text-muted-foreground">
           <p>
             Ingresos brutos: {formatCurrency(annual.grossCents / 100)} ·
             Deducción por milla: −
@@ -177,14 +177,14 @@ export default async function TaxesPage({
                   </span>
                 )}
               </CardDescription>
-              <CardTitle className="text-2xl">
+              <CardTitle className="text-2xl tabular-nums">
                 {formatCurrency(quarter.estimate.totalCents / 100)}
               </CardTitle>
               <CardDescription>
                 pago estimado: {formatDate(quarter.dueDate)}
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-1 text-xs text-muted-foreground">
+            <CardContent className="space-y-1 text-footnote text-muted-foreground">
               {quarter.estimate.grossCents === 0 ? (
                 <p>Sin ingresos registrados en este trimestre.</p>
               ) : (

@@ -4,6 +4,7 @@ import { Clock, MapPin, Package, Pencil, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import { formatCurrency, formatDate, formatMinutes } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -137,61 +138,75 @@ export default async function WorkLogsPage({
         </Card>
       ) : (
         <>
-          <form
-            method="GET"
-            className="flex flex-wrap items-center gap-2 rounded-lg border p-3"
-          >
-            <select name="ruta" defaultValue={rutaId ?? ""} className={selectClass}>
-              <option value="">Todas las rutas</option>
-              {routes.map((route) => (
-                <option key={route.id} value={route.id}>
-                  {route.name}
-                </option>
-              ))}
-            </select>
-            {companies.length > 1 && (
-              <select
-                name="empresa"
-                defaultValue={empresaId ?? ""}
-                className={selectClass}
-              >
-                <option value="">Todas las empresas</option>
-                {companies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            )}
-            <Input
-              type="date"
-              name="desde"
-              defaultValue={desde}
-              aria-label="Desde"
-              className="w-fit"
-            />
-            <Input
-              type="date"
-              name="hasta"
-              defaultValue={hasta}
-              aria-label="Hasta"
-              className="w-fit"
-            />
-            <Input
-              name="q"
-              defaultValue={q}
-              placeholder="Buscar en notas…"
-              className="w-40"
-            />
-            <Button type="submit" variant="outline" size="sm">
-              <Search className="size-4" />
-              Filtrar
-            </Button>
-            {hasFilters && (
-              <Button asChild variant="ghost" size="sm">
-                <Link href="/registros">Limpiar</Link>
+          <form method="GET" className="space-y-3 rounded-lg border p-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Ruta
+                </span>
+                <select
+                  name="ruta"
+                  defaultValue={rutaId ?? ""}
+                  className={cn(selectClass, "w-full")}
+                >
+                  <option value="">Todas</option>
+                  {routes.map((route) => (
+                    <option key={route.id} value={route.id}>
+                      {route.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {companies.length > 1 && (
+                <label className="space-y-1">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Empresa
+                  </span>
+                  <select
+                    name="empresa"
+                    defaultValue={empresaId ?? ""}
+                    className={cn(selectClass, "w-full")}
+                  >
+                    <option value="">Todas</option>
+                    {companies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Desde
+                </span>
+                <Input type="date" name="desde" defaultValue={desde} />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Hasta
+                </span>
+                <Input type="date" name="hasta" defaultValue={hasta} />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                name="q"
+                defaultValue={q}
+                placeholder="Buscar en notas…"
+                aria-label="Buscar en notas"
+                className="min-w-0 flex-1 sm:max-w-56"
+              />
+              <Button type="submit" variant="outline">
+                <Search className="size-4" />
+                Filtrar
               </Button>
-            )}
+              {hasFilters && (
+                <Button asChild variant="ghost">
+                  <Link href="/registros">Limpiar</Link>
+                </Button>
+              )}
+            </div>
           </form>
 
           {workLogs.length === 0 ? (
@@ -236,10 +251,10 @@ export default async function WorkLogsPage({
                           <p className="text-sm font-medium">
                             {formatDate(log.date)}
                           </p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="truncate text-footnote text-muted-foreground">
                             {log.route.name} · {log.route.company.name}
                           </p>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-footnote text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <Package className="size-3.5" />
                               {packages} paq.
@@ -258,14 +273,15 @@ export default async function WorkLogsPage({
                             </span>
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <p className="text-base font-bold">
+                        <div className="flex shrink-0 items-center gap-1">
+                          <p className="text-base font-bold tabular-nums">
                             {formatCurrency(log.totalEarned.toFixed(2))}
                           </p>
                           <Button
                             asChild
                             variant="ghost"
                             size="icon"
+                            className="-my-2 -mr-3 size-11"
                             aria-label="Editar registro"
                           >
                             <Link href={`/registros/${log.id}/editar`}>

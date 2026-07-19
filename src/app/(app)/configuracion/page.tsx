@@ -167,7 +167,7 @@ export default async function SettingsPage() {
                   className="flex items-center justify-between gap-2"
                 >
                   <span className="truncate">{route.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="shrink-0 text-footnote text-muted-foreground">
                     {route.company.name} ·{" "}
                     {route.rateTypes.length === 1
                       ? "1 tarifa"

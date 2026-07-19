@@ -168,6 +168,15 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
   + apple-icon.png. El ícono de la PWA instalada solo cambia al reinstalar.
 - Diseño: monocromo radix-vega; acento esmeralda SOLO en cifras de dinero
   positivas; skill de diseño de referencia: plugin `ui-ux-pro-max`.
+- **Escala tipográfica (alineada a la HIG de Apple)**: título de página
+  text-2xl bold tracking-tight (24) · título de tarjeta 16 semibold (default
+  shadcn) · cifra KPI text-2xl/3xl + `tabular-nums` (SIEMPRE tabular en
+  dinero) · cuerpo text-sm (14) · metadatos de tarjetas/celdas
+  `text-footnote` (13px, token en globals.css) · text-xs (12) SOLO captions
+  reales (insignias, notas de ayuda) · labels de nav text-[11px]. Ritmo:
+  space-y-6 entre secciones, space-y-3 en listas, gap-3/4 en grids, filtros
+  con etiqueta visible en grid de 2/4 columnas. Botones de ícono en listas:
+  `size-11` (44pt, mínimo táctil de Apple).
 - Mobile-first; nav inferior en móvil con 4 pestañas (Inicio, Registros,
   Gastos, Ajustes — Rutas/Empresas viven en Ajustes como tarjetas con vista
   previa y alta rápida, y esas rutas resaltan la pestaña Ajustes); header en

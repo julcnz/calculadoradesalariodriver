@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* Footnote de iOS (13px): metadatos de tarjetas y celdas. text-xs (12px)
+     queda SOLO para captions reales (insignias, notas de ayuda). */
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.45;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);

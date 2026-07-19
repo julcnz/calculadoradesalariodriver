@@ -415,11 +415,11 @@ export default async function DashboardPage({
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Ingresos</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums">
               {formatCurrency(incomeCents / 100)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs text-muted-foreground">
+          <CardContent className="space-y-2 text-footnote text-muted-foreground">
             <p>
               {packages} paquetes ·{" "}
               {daysWorked === 1
@@ -463,11 +463,11 @@ export default async function DashboardPage({
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Gastos</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums">
               −{formatCurrency(expenseCents / 100)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
+          <CardContent className="text-footnote text-muted-foreground">
             <p>
               {expenses.length === 1
                 ? "1 gasto registrado"
@@ -490,7 +490,7 @@ export default async function DashboardPage({
               {formatCurrency(netCents / 100)}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
+          <CardContent className="text-footnote text-muted-foreground">
             <p>
               {incomeCents > 0
                 ? `Margen: ${Math.round((netCents / incomeCents) * 100)}%`
@@ -501,13 +501,13 @@ export default async function DashboardPage({
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Promedios</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums">
               {perHourCents !== null
                 ? `${formatCurrency(perHourCents / 100)}/h`
                 : "—/h"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs text-muted-foreground">
+          <CardContent className="space-y-1 text-footnote text-muted-foreground">
             <p>
               {perMileCents !== null
                 ? `${formatCurrency(perMileCents / 100)}/milla`
@@ -538,13 +538,13 @@ export default async function DashboardPage({
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Punto de equilibrio</CardDescription>
-            <CardTitle className="text-2xl">
+            <CardTitle className="text-2xl tabular-nums">
               {breakeven.packagesNeeded !== null
                 ? `~${breakeven.packagesNeeded} paquetes/día`
                 : "Faltan datos"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">
+          <CardContent className="text-footnote text-muted-foreground">
             {breakeven.packagesNeeded !== null ? (
               <p>
                 Para cubrir {formatCurrency(breakeven.dailyCostCents / 100)}{" "}
