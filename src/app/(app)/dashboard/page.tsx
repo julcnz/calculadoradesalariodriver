@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/session";
 import {
@@ -275,6 +275,26 @@ export default async function DashboardPage({
       ? Math.round((incomeCents * totalDays) / elapsedDays)
       : null;
 
+  // Meta inversa: cuánto falta por día (y en paquetes, con el $/paquete de
+  // las últimas 12 semanas) para alcanzar la meta del período EN CURSO.
+  // Math.ceil en ambas: mejor pedir un poco de más que quedarse corto.
+  const goalGap = (() => {
+    if (goalCents === null || goalCents <= 0) return null;
+    if (!isCurrentPeriod || periodo === "dia") return null;
+    const remainingCents = goalCents - incomeCents;
+    if (remainingCents <= 0) return null;
+    const remainingDays = totalDays - elapsedDays + 1; // incluye hoy
+    if (remainingDays <= 0) return null;
+    const perDayCents = Math.ceil(remainingCents / remainingDays);
+    return {
+      remainingDays,
+      perDayCents,
+      packagesPerDay: histAverages.perPackageCents
+        ? Math.ceil(perDayCents / histAverages.perPackageCents)
+        : null,
+    };
+  })();
+
   // Racha: días consecutivos trabajados terminando hoy (o ayer).
   const workedDates = new Set(
     historyLogs.map((log) => toDateParam(log.date))
@@ -285,6 +305,18 @@ export default async function DashboardPage({
     streak += 1;
     cursor = addDays(cursor, -1);
   }
+
+  // "Repetir ayer": atajo que precarga el registro de hoy con el último día
+  // trabajado. Solo si hoy aún no hay registro y existe uno anterior.
+  const todayParam = toDateParam(today);
+  const lastWorkedParam =
+    [...workedDates].filter((d) => d < todayParam).sort().at(-1) ?? null;
+  const showRepeatLast =
+    !workedDates.has(todayParam) && lastWorkedParam !== null;
+  const repeatLabel =
+    lastWorkedParam === toDateParam(addDays(today, -1))
+      ? "Repetir ayer"
+      : "Repetir último día";
 
   // Récords históricos (respetan el filtro de empresa activo).
   const byDay = new Map<string, number>();
@@ -365,9 +397,18 @@ export default async function DashboardPage({
           weekStartDay={user.weekStartDay}
           empresa={companyId}
         />
-        {periodo === "semana" && (
-          <ShareWeekButton weekStartParam={toDateParam(start)} />
-        )}
+        <div className="flex items-center gap-2">
+          {showRepeatLast && (
+            <Button asChild size="sm" variant="outline">
+              <Link href="/registros/nuevo?desde=ultimo">
+                <RotateCcw /> {repeatLabel}
+              </Link>
+            </Button>
+          )}
+          {periodo === "semana" && (
+            <ShareWeekButton weekStartParam={toDateParam(start)} />
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -404,6 +445,17 @@ export default async function DashboardPage({
                   Meta: {formatCurrency(goalCents / 100)} · {goalPct}%
                   {goalPct >= 100 && " 🎉"}
                 </p>
+                {goalGap !== null && (
+                  <p>
+                    Para llegar: ~{formatCurrency(goalGap.perDayCents / 100)}
+                    /día
+                    {goalGap.packagesPerDay !== null &&
+                      ` (≈${goalGap.packagesPerDay} paquetes/día)`}
+                    {goalGap.remainingDays === 1
+                      ? " hoy"
+                      : ` los ${goalGap.remainingDays} días que quedan`}
+                  </p>
+                )}
               </div>
             )}
           </CardContent>

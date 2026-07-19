@@ -35,15 +35,33 @@ export type RouteWithRates = {
   rates: { id: string; name: string; amount: string }[];
 };
 
+// "Repetir ayer": ruta, cantidades y horas del último registro. La fecha
+// siempre es hoy y las cantidades se cobran con la tarifa VIGENTE (esto es
+// un registro nuevo, no una copia del snapshot).
+export type WorkLogInitialValues = {
+  routeId?: string;
+  quantities?: Record<string, string>;
+  startTime?: string;
+  endTime?: string;
+};
+
 function todayLocalISO(): string {
   return new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD en hora local
 }
 
-export function WorkLogCreateForm({ routes }: { routes: RouteWithRates[] }) {
-  const [routeId, setRouteId] = useState(routes[0]?.id ?? "");
-  const [quantities, setQuantities] = useState<Record<string, string>>({});
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+export function WorkLogCreateForm({
+  routes,
+  initial,
+}: {
+  routes: RouteWithRates[];
+  initial?: WorkLogInitialValues;
+}) {
+  const [routeId, setRouteId] = useState(initial?.routeId ?? routes[0]?.id ?? "");
+  const [quantities, setQuantities] = useState<Record<string, string>>(
+    initial?.quantities ?? {}
+  );
+  const [startTime, setStartTime] = useState(initial?.startTime ?? "");
+  const [endTime, setEndTime] = useState(initial?.endTime ?? "");
   const [queuedOffline, setQueuedOffline] = useState(false);
   const [state, formAction, isPending] = useActionState(createWorkLog, null);
 
