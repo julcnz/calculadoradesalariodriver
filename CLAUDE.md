@@ -194,18 +194,26 @@ Combustible estimado (mpg + $/galón) · Rendimiento por día de la semana
 (12 semanas) · Punto de equilibrio en paquetes/día (gastos fijos
 mensuales) · Simulador de ruta (/simulador, comparado vs histórico) ·
 Recordatorio push diario (hora local, GitHub Actions horario) · Resumen
-semanal compartible (/s/[token] público con OG dinámica, revocable).
+semanal compartible (/s/[token] público con OG dinámica, revocable) ·
+"Repetir ayer" (botón en dashboard si hoy no hay registro; precarga ruta,
+cantidades y horas del último día vía /registros/nuevo?desde=ultimo, con
+tarifas VIGENTES y sin copiar millas) · Meta inversa ($/día y paquetes/día
+para alcanzar la meta del período en curso) · Sección /impuestos (trimestres
+IRS + anual, SE 15.3% sobre 92.35% de ingresos−millas, tasa efectiva
+User.incomeTaxRate editable; entradas en menú de usuario y Ajustes;
+src/lib/taxes.ts).
 
 ## 6. Pendientes y próximos pasos
 
-- **Desplegar las 6 features nuevas** (julio 2026): (1) migraciones en Neon
+- **Desplegar features pendientes**: (1) migraciones en Neon
   (`combustible_vehiculo`, `gastos_fijos_mensuales`, `recordatorios_push`,
-  `semanas_compartidas` — aditivas/nullable, seguras antes del deploy);
-  (2) generar claves VAPID de PRODUCCIÓN una sola vez y ponerlas en Vercel
-  (NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT) +
-  redeploy; (3) secret CRON_SECRET en GitHub (Settings → Secrets → Actions,
-  mismo valor que Vercel) y probar el workflow "Recordatorios push" con
-  workflow_dispatch; (4) smoke en iPhone: PWA instalada, activar
+  `semanas_compartidas`, `seccion_impuestos` — aditivas, seguras antes del
+  deploy); (2) generar claves VAPID de PRODUCCIÓN una sola vez y ponerlas en
+  Vercel (NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT) +
+  redeploy; (3) **secret CRON_SECRET en GitHub — CONFIRMADO faltante (18
+  jul): el workflow corre cada hora y recibe 401 con Bearer vacío**; crearlo
+  en Settings → Secrets → Actions con el valor de .env.produccion y probar
+  con workflow_dispatch; (4) smoke en iPhone: PWA instalada, activar
   recordatorio, compartir semana y validar preview OG en WhatsApp.
 - **Rotar secretos** expuestos en la conversación de lanzamiento: password
   de Neon y API key de Resend; actualizar en Vercel y en los archivos

@@ -31,6 +31,35 @@ export async function updateMileageRate(
   return { success: true };
 }
 
+export type IncomeTaxRateState = {
+  error?: string;
+  success?: boolean;
+} | null;
+
+// Tasa efectiva de impuesto sobre ingreso (%) para la estimación de
+// /impuestos. El impuesto de autoempleo se calcula aparte (src/lib/taxes.ts).
+export async function updateIncomeTaxRate(
+  _prevState: IncomeTaxRateState,
+  formData: FormData
+): Promise<IncomeTaxRateState> {
+  const userId = await requireUserId();
+
+  const raw = String(formData.get("incomeTaxRate") ?? "")
+    .trim()
+    .replace(",", ".");
+  if (!/^\d{1,2}(\.\d)?$/.test(raw) || Number(raw) > 60) {
+    return { error: "Ingresa un porcentaje entre 0 y 60 (ej. 10)" };
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { incomeTaxRate: raw },
+  });
+
+  revalidatePath("/impuestos");
+  return { success: true };
+}
+
 export type FuelSettingsState = {
   error?: string;
   success?: boolean;

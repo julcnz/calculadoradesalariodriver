@@ -124,6 +124,21 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Impuestos estimados</CardTitle>
+          <CardDescription>
+            Cuánto apartar cada trimestre como contratista independiente
+            (1099), calculado con tus ingresos y millas reales.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline">
+            <Link href="/impuestos">Ver mis impuestos</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Vehículo y combustible</CardTitle>
           <CardDescription>
             Rendimiento de tu vehículo y precio de la gasolina para estimar el

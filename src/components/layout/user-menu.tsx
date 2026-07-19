@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, UserRound } from "lucide-react";
+import { Landmark, LogOut, UserRound } from "lucide-react";
 import { logoutUser } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +48,12 @@ export function UserMenu({
           <Link href="/perfil">
             <UserRound className="size-4" />
             Mi perfil
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/impuestos">
+            <Landmark className="size-4" />
+            Impuestos
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

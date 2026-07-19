@@ -21,6 +21,7 @@ model User {
   vehicleMpg         Decimal? @db.Decimal(4, 1) // millas por galón del vehículo; null = sin configurar (regla 2)
   fuelPricePerGallon Decimal? @db.Decimal(5, 2) // $/galón; null = sin configurar
   monthlyFixedCosts  Decimal? @db.Decimal(10, 2) // gastos fijos $/mes para el punto de equilibrio; null = sin configurar
+  incomeTaxRate      Decimal  @default(10) @db.Decimal(4, 1) // % efectivo de impuesto sobre ingreso para la estimación de /impuestos (el SE tax se calcula aparte)
   reminderEnabled    Boolean  @default(false) // recordatorio push diario para registrar el día
   reminderTime       String? // "HH:mm" en la hora local del usuario
   timeZone           String? // IANA persistida (espejo de la cookie tz; la usa el cron)
