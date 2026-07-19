@@ -60,34 +60,36 @@ export function WorkLogCommonFields({
           type="date"
           defaultValue={defaults.date}
           required
-          className="w-fit"
+          className="w-full sm:max-w-48"
         />
         <FieldError errors={errors?.date} />
       </div>
 
       <div className="space-y-2">
         <Label>Horas trabajadas (opcional)</Label>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">Inicio</span>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              Inicio
+            </span>
             <Input
               name="startTime"
               type="time"
               value={startTime}
               onChange={(e) => onStartTimeChange(e.target.value)}
-              className="w-fit"
             />
-          </div>
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">Fin</span>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
+              Fin
+            </span>
             <Input
               name="endTime"
               type="time"
               value={endTime}
               onChange={(e) => onEndTimeChange(e.target.value)}
-              className="w-fit"
             />
-          </div>
+          </label>
         </div>
         <p className="text-xs text-muted-foreground">
           {workedMinutes !== null
@@ -109,11 +111,11 @@ export function WorkLogCommonFields({
           placeholder="Ej. 120.5"
           defaultValue={defaults.miles}
           disabled={usingOdometer}
-          className="w-32"
+          className="w-full sm:max-w-48"
         />
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
               Odómetro inicio
             </span>
             <Input
@@ -122,11 +124,10 @@ export function WorkLogCommonFields({
               placeholder="Ej. 45230.0"
               value={odometerStart}
               onChange={(e) => setOdometerStart(e.target.value)}
-              className="w-32"
             />
-          </div>
-          <div className="space-y-1">
-            <span className="text-xs text-muted-foreground">
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs font-medium text-muted-foreground">
               Odómetro fin
             </span>
             <Input
@@ -135,9 +136,8 @@ export function WorkLogCommonFields({
               placeholder="Ej. 45315.3"
               value={odometerEnd}
               onChange={(e) => setOdometerEnd(e.target.value)}
-              className="w-32"
             />
-          </div>
+          </label>
         </div>
         <p className="text-xs text-muted-foreground">
           {odoMiles !== null

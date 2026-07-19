@@ -103,7 +103,7 @@ export default async function ExpensesPage({
       {categories.length > 0 && (
         <form method="GET" className="space-y-3 rounded-lg border p-4">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <label className="space-y-1">
+            <label className="col-span-2 space-y-1 sm:col-span-1">
               <span className="text-xs font-medium text-muted-foreground">
                 Categoría
               </span>

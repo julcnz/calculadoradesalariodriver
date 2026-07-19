@@ -131,4 +131,18 @@
   html {
     @apply font-sans;
   }
+  /* iOS/WebKit renderiza date/time con apariencia nativa: altura y ancho
+     intrínsecos propios que rompen la alineación con el resto de inputs.
+     Esto los normaliza a la métrica de shadcn (h-9, ancho del contenedor). */
+  input[type="date"],
+  input[type="time"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    min-height: 2.25rem;
+  }
+  input::-webkit-date-and-time-value {
+    text-align: left;
+    line-height: 1.25rem;
+  }
 }
