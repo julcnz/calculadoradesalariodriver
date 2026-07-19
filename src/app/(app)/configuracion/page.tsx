@@ -91,6 +91,24 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Rutas y empresas</CardTitle>
+          <CardDescription>
+            Administra tus rutas con sus tarifas y las empresas para las que
+            trabajas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/rutas">Mis rutas</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/empresas">Mis empresas</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Metas de ganancias</CardTitle>
           <CardDescription>
             Define cuánto quieres ganar por período y sigue tu progreso en el

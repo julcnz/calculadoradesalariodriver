@@ -168,7 +168,9 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
   + apple-icon.png. El ícono de la PWA instalada solo cambia al reinstalar.
 - Diseño: monocromo radix-vega; acento esmeralda SOLO en cifras de dinero
   positivas; skill de diseño de referencia: plugin `ui-ux-pro-max`.
-- Mobile-first; nav inferior en móvil (6 ítems), header en desktop.
+- Mobile-first; nav inferior en móvil con 4 pestañas (Inicio, Registros,
+  Gastos, Ajustes — Rutas/Empresas viven en Ajustes y resaltan esa pestaña);
+  header en desktop con las 6 secciones.
 - Server components por defecto; "use client" solo cuando hace falta.
 - Verificación: typecheck + lint + prueba real en navegador antes de cada
   commit; commits por módulo/feature.
@@ -225,9 +227,8 @@ src/lib/taxes.ts).
   centavos, odómetro, rate limiter, borrado 90 días.
 - **Sentry** (errores en producción).
 - Ideas discutidas no implementadas: reporte de impuestos (PDF), gráfico de
-  evolución temporal, "repetir ayer", foto de recibos en gastos, eliminar
-  cuenta inmediata, importar CSV, i18n, rate limit con Redis, y reducir la
-  nav a 5 pestañas (HIG recomienda ≤5; mover Empresas a Ajustes).
+  evolución temporal, foto de recibos en gastos, eliminar cuenta inmediata,
+  importar CSV, i18n, rate limit con Redis.
 - `prompt-claude-code.md` en la raíz está sin trackear a propósito.
 
 ## 7. Comandos útiles
