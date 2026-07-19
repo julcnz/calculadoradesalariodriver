@@ -14,6 +14,7 @@ import {
 export type RouteFormState = {
   errors?: Record<string, string[]>;
   message?: string;
+  success?: boolean;
 } | null;
 
 function parseRatesFromForm(formData: FormData) {
@@ -25,12 +26,12 @@ function parseRatesFromForm(formData: FormData) {
   }));
 }
 
-export async function createRoute(
-  _prevState: RouteFormState,
+// Núcleo compartido por el formulario de /rutas/nueva y el alta rápida de
+// Ajustes. Devuelve null si la ruta se creó bien.
+async function persistRoute(
+  userId: string,
   formData: FormData
 ): Promise<RouteFormState> {
-  const userId = await requireUserId();
-
   const parsed = createRouteSchema.safeParse({
     companyId: formData.get("companyId"),
     name: formData.get("name"),
@@ -72,8 +73,33 @@ export async function createRoute(
     },
   });
 
+  return null;
+}
+
+export async function createRoute(
+  _prevState: RouteFormState,
+  formData: FormData
+): Promise<RouteFormState> {
+  const userId = await requireUserId();
+  const state = await persistRoute(userId, formData);
+  if (state) return state;
+
   revalidatePath("/rutas");
   redirect("/rutas");
+}
+
+// Alta rápida desde Ajustes: sin redirect, la tarjeta se refresca en sitio.
+export async function createRouteFromSettings(
+  _prevState: RouteFormState,
+  formData: FormData
+): Promise<RouteFormState> {
+  const userId = await requireUserId();
+  const state = await persistRoute(userId, formData);
+  if (state) return state;
+
+  revalidatePath("/rutas");
+  revalidatePath("/configuracion");
+  return { success: true };
 }
 
 export async function updateRouteName(

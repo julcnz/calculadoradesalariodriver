@@ -18,6 +18,8 @@ import { FuelSettingsForm } from "@/components/settings/fuel-settings-form";
 import { FixedCostsForm } from "@/components/settings/fixed-costs-form";
 import { ReminderSettings } from "@/components/settings/reminder-settings";
 import { SharedWeeksList } from "@/components/settings/shared-weeks-list";
+import { CompanyQuickAdd } from "@/components/settings/company-quick-add";
+import { RouteQuickAdd } from "@/components/settings/route-quick-add";
 import { addDays } from "@/lib/dates/week";
 import { formatDate } from "@/lib/format";
 
@@ -26,7 +28,7 @@ export const metadata: Metadata = { title: "Configuración" };
 export default async function SettingsPage() {
   const userId = await requireUserId();
 
-  const [user, goals, sharedWeeks] = await Promise.all([
+  const [user, goals, sharedWeeks, companies, routes] = await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: {
@@ -47,7 +49,24 @@ export default async function SettingsPage() {
       orderBy: { weekStart: "desc" },
       select: { id: true, weekStart: true, createdAt: true },
     }),
+    prisma.company.findMany({
+      where: { userId },
+      orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
+      select: { id: true, name: true, isActive: true },
+    }),
+    prisma.route.findMany({
+      where: { company: { userId }, isActive: true },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        company: { select: { name: true } },
+        rateTypes: { where: { isActive: true }, select: { id: true } },
+      },
+    }),
   ]);
+
+  const PREVIEW_LIMIT = 5;
 
   const goalAmount = (period: string) =>
     goals.find((g) => g.period === period)?.amount.toFixed(2) ?? "";
@@ -91,18 +110,93 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Rutas y empresas</CardTitle>
+          <CardTitle>Empresas</CardTitle>
           <CardDescription>
-            Administra tus rutas con sus tarifas y las empresas para las que
-            trabajas.
+            Para quién trabajas. La activa es la que se preselecciona al crear
+            rutas; el historial completo se conserva.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link href="/rutas">Mis rutas</Link>
+        <CardContent className="space-y-4">
+          {companies.length > 0 ? (
+            <ul className="space-y-1.5 text-sm">
+              {companies.slice(0, PREVIEW_LIMIT).map((company) => (
+                <li
+                  key={company.id}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <span className="truncate">{company.name}</span>
+                  {company.isActive && (
+                    <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium text-accent-foreground">
+                      Activa
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aún no tienes empresas registradas.
+            </p>
+          )}
+          {companies.length > PREVIEW_LIMIT && (
+            <p className="text-xs text-muted-foreground">
+              y {companies.length - PREVIEW_LIMIT} más…
+            </p>
+          )}
+          <CompanyQuickAdd />
+          <Button asChild variant="ghost" size="sm" className="-ml-2">
+            <Link href="/empresas">Administrar empresas →</Link>
           </Button>
-          <Button asChild variant="outline">
-            <Link href="/empresas">Mis empresas</Link>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Rutas y tarifas</CardTitle>
+          <CardDescription>
+            Tus rutas con lo que te pagan por paquete. Sin una ruta no puedes
+            registrar el día.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {routes.length > 0 ? (
+            <ul className="space-y-1.5 text-sm">
+              {routes.slice(0, PREVIEW_LIMIT).map((route) => (
+                <li
+                  key={route.id}
+                  className="flex items-center justify-between gap-2"
+                >
+                  <span className="truncate">{route.name}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {route.company.name} ·{" "}
+                    {route.rateTypes.length === 1
+                      ? "1 tarifa"
+                      : `${route.rateTypes.length} tarifas`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aún no tienes rutas activas.
+            </p>
+          )}
+          {routes.length > PREVIEW_LIMIT && (
+            <p className="text-xs text-muted-foreground">
+              y {routes.length - PREVIEW_LIMIT} más…
+            </p>
+          )}
+          {companies.length > 0 ? (
+            <RouteQuickAdd
+              companies={companies.map(({ id, name }) => ({ id, name }))}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Primero agrega una empresa para poder crear rutas.
+            </p>
+          )}
+          <Button asChild variant="ghost" size="sm" className="-ml-2">
+            <Link href="/rutas">Administrar rutas →</Link>
           </Button>
         </CardContent>
       </Card>

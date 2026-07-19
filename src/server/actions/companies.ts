@@ -55,6 +55,7 @@ export async function createCompany(
   });
 
   revalidatePath("/empresas");
+  revalidatePath("/configuracion"); // la tarjeta de Ajustes muestra la lista
   return { success: true };
 }
 

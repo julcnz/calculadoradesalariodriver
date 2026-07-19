@@ -169,8 +169,9 @@ exceljs. Producción: **Vercel + Neon (us-east-1) + Resend**.
 - Diseño: monocromo radix-vega; acento esmeralda SOLO en cifras de dinero
   positivas; skill de diseño de referencia: plugin `ui-ux-pro-max`.
 - Mobile-first; nav inferior en móvil con 4 pestañas (Inicio, Registros,
-  Gastos, Ajustes — Rutas/Empresas viven en Ajustes y resaltan esa pestaña);
-  header en desktop con las 6 secciones.
+  Gastos, Ajustes — Rutas/Empresas viven en Ajustes como tarjetas con vista
+  previa y alta rápida, y esas rutas resaltan la pestaña Ajustes); header en
+  desktop con las 6 secciones.
 - Server components por defecto; "use client" solo cuando hace falta.
 - Verificación: typecheck + lint + prueba real en navegador antes de cada
   commit; commits por módulo/feature.
