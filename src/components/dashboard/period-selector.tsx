@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import {
   getPeriodRange,
   shiftPeriod,
@@ -74,36 +74,57 @@ export function PeriodSelector({
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button asChild variant="outline" size="icon" aria-label="Período anterior">
-          <Link
-            href={buildHref(
-              periodo,
-              toDateParam(shiftPeriod(periodo, date, -1)),
-              empresa
-            )}
+        {/* Grupo de navegación: se mantiene junto (no se parte al envolver). */}
+        <div className="flex items-center gap-2">
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            aria-label="Período anterior"
           >
-            <ChevronLeft className="size-4" />
-          </Link>
-        </Button>
-        <p className="min-w-40 text-center text-sm font-medium">
-          {rangeLabel(periodo, date, weekStartDay)}
-        </p>
-        <Button asChild variant="outline" size="icon" aria-label="Período siguiente">
-          <Link
-            href={buildHref(
-              periodo,
-              toDateParam(shiftPeriod(periodo, date, 1)),
-              empresa
-            )}
-          >
-            <ChevronRight className="size-4" />
-          </Link>
-        </Button>
-        {!isCurrentPeriod && (
-          <Button asChild variant="ghost" size="sm">
-            <Link href={buildHref(periodo, null, empresa)}>Hoy</Link>
+            <Link
+              href={buildHref(
+                periodo,
+                toDateParam(shiftPeriod(periodo, date, -1)),
+                empresa
+              )}
+            >
+              <ChevronLeft className="size-4" />
+            </Link>
           </Button>
-        )}
+          <p className="min-w-32 text-center text-sm font-medium">
+            {rangeLabel(periodo, date, weekStartDay)}
+          </p>
+          <Button
+            asChild
+            variant="outline"
+            size="icon"
+            aria-label="Período siguiente"
+          >
+            <Link
+              href={buildHref(
+                periodo,
+                toDateParam(shiftPeriod(periodo, date, 1)),
+                empresa
+              )}
+            >
+              <ChevronRight className="size-4" />
+            </Link>
+          </Button>
+          {!isCurrentPeriod && (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              aria-label="Volver a hoy"
+              title="Volver a hoy"
+            >
+              <Link href={buildHref(periodo, null, empresa)}>
+                <RotateCcw className="size-4" />
+              </Link>
+            </Button>
+          )}
+        </div>
         {actions}
       </div>
     </div>

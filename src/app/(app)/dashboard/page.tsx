@@ -11,7 +11,6 @@ import {
   shiftPeriod,
   startOfWeek,
   toDateParam,
-  WEEKDAYS_ES,
   type PeriodType,
 } from "@/lib/dates/week";
 import { currentHourForUser, todayForUser } from "@/lib/dates/server";
@@ -95,48 +94,61 @@ export default async function DashboardPage({
     user.weekStartDay
   );
 
-  const [logs, expenses, prevAggregate, historyLogs] = await Promise.all([
-    prisma.workLog.findMany({
-      where: {
-        userId,
-        date: { gte: start, lte: end },
-        ...companyWhere,
-      },
-      include: {
-        route: { select: { name: true } },
-        entries: { select: { quantity: true } },
-      },
-    }),
-    prisma.expense.findMany({
-      where: { userId, date: { gte: start, lte: end } },
-      select: { amount: true, category: { select: { name: true } } },
-    }),
-    // Período anterior, para la comparativa.
-    prisma.workLog.aggregate({
-      where: {
-        userId,
-        date: { gte: prevRange.start, lte: prevRange.end },
-        ...companyWhere,
-      },
-      _sum: { totalEarned: true },
-    }),
-    // Historial completo (ligero) para racha y récords; los campos extra
-    // alimentan la ventana de 12 semanas (rendimiento por día, equilibrio).
-    // Si el volumen crece, separar la ventana en una query con date >= gte.
-    prisma.workLog.findMany({
-      where: { userId, ...companyWhere },
-      select: {
-        date: true,
-        totalEarned: true,
-        workedMinutes: true,
-        miles: true,
-        entries: { select: { quantity: true } },
-      },
-    }),
-  ]);
+  const [logs, expenses, prevAggregate, prevExpenseAggregate, historyLogs] =
+    await Promise.all([
+      prisma.workLog.findMany({
+        where: {
+          userId,
+          date: { gte: start, lte: end },
+          ...companyWhere,
+        },
+        include: {
+          route: { select: { name: true } },
+          entries: { select: { quantity: true } },
+        },
+      }),
+      prisma.expense.findMany({
+        where: { userId, date: { gte: start, lte: end } },
+        select: { amount: true, category: { select: { name: true } } },
+      }),
+      // Período anterior, para la comparativa de ingresos.
+      prisma.workLog.aggregate({
+        where: {
+          userId,
+          date: { gte: prevRange.start, lte: prevRange.end },
+          ...companyWhere,
+        },
+        _sum: { totalEarned: true },
+      }),
+      // Gastos del período anterior (no se filtran por empresa, como los del
+      // período actual), para la comparativa de gastos.
+      prisma.expense.aggregate({
+        where: {
+          userId,
+          date: { gte: prevRange.start, lte: prevRange.end },
+        },
+        _sum: { amount: true },
+      }),
+      // Historial completo (ligero) para racha y récords; los campos extra
+      // alimentan la ventana de 12 semanas (rendimiento por día, equilibrio).
+      // Si el volumen crece, separar la ventana en una query con date >= gte.
+      prisma.workLog.findMany({
+        where: { userId, ...companyWhere },
+        select: {
+          date: true,
+          totalEarned: true,
+          workedMinutes: true,
+          miles: true,
+          entries: { select: { quantity: true } },
+        },
+      }),
+    ]);
 
   // Ventana histórica de 12 semanas (alineada a la semana personalizada).
-  const historyWindowStart = addDays(startOfWeek(today, user.weekStartDay), -77);
+  const historyWindowStart = addDays(
+    startOfWeek(today, user.weekStartDay),
+    -77
+  );
   const recentHistory: HistoryLogLite[] = historyLogs
     .filter((log) => log.date >= historyWindowStart)
     .map((log) => ({
@@ -224,7 +236,9 @@ export default async function DashboardPage({
   // Combustible estimado del período: millas ÷ mpg × precio/galón. Solo
   // informativo (no altera el neto) y solo con millas y config completas.
   // Aritmética entera: (mi/10) ÷ (mpg/10) × priceCents = mi × priceCents / mpg.
-  const mpgTenths = user.vehicleMpg ? Math.round(Number(user.vehicleMpg) * 10) : 0;
+  const mpgTenths = user.vehicleMpg
+    ? Math.round(Number(user.vehicleMpg) * 10)
+    : 0;
   const fuelPriceCents = user.fuelPricePerGallon
     ? Math.round(Number(user.fuelPricePerGallon) * 100)
     : 0;
@@ -258,7 +272,7 @@ export default async function DashboardPage({
     };
   })();
 
-  // Comparativa con el período anterior.
+  // Comparativa con el período anterior (ingresos y gastos).
   const prevCents = Math.round(
     Number(prevAggregate._sum.totalEarned ?? 0) * 100
   );
@@ -266,14 +280,26 @@ export default async function DashboardPage({
     prevCents > 0
       ? Math.round(((incomeCents - prevCents) / prevCents) * 100)
       : null;
+  const prevExpenseCents = Math.round(
+    Number(prevExpenseAggregate._sum.amount ?? 0) * 100
+  );
+  const expenseChangePct =
+    prevExpenseCents > 0
+      ? Math.round(((expenseCents - prevExpenseCents) / prevExpenseCents) * 100)
+      : null;
 
   // Proyección: solo para el período EN CURSO (no aplica al día).
   const MS_PER_DAY = 24 * 60 * 60 * 1000;
   const isCurrentPeriod = today >= start && today <= end;
-  const totalDays = Math.round((end.getTime() - start.getTime()) / MS_PER_DAY) + 1;
-  const elapsedDays = Math.round((today.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+  const totalDays =
+    Math.round((end.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+  const elapsedDays =
+    Math.round((today.getTime() - start.getTime()) / MS_PER_DAY) + 1;
   const projectionCents =
-    isCurrentPeriod && periodo !== "dia" && incomeCents > 0 && elapsedDays < totalDays
+    isCurrentPeriod &&
+    periodo !== "dia" &&
+    incomeCents > 0 &&
+    elapsedDays < totalDays
       ? Math.round((incomeCents * totalDays) / elapsedDays)
       : null;
 
@@ -298,9 +324,7 @@ export default async function DashboardPage({
   })();
 
   // Racha: días consecutivos trabajados terminando hoy (o ayer).
-  const workedDates = new Set(
-    historyLogs.map((log) => toDateParam(log.date))
-  );
+  const workedDates = new Set(historyLogs.map((log) => toDateParam(log.date)));
   let streak = 0;
   let cursor = workedDates.has(toDateParam(today)) ? today : addDays(today, -1);
   while (workedDates.has(toDateParam(cursor))) {
@@ -312,7 +336,10 @@ export default async function DashboardPage({
   // trabajado. Solo si hoy aún no hay registro y existe uno anterior.
   const todayParam = toDateParam(today);
   const lastWorkedParam =
-    [...workedDates].filter((d) => d < todayParam).sort().at(-1) ?? null;
+    [...workedDates]
+      .filter((d) => d < todayParam)
+      .sort()
+      .at(-1) ?? null;
   const showRepeatLast =
     !workedDates.has(todayParam) && lastWorkedParam !== null;
   const repeatLabel =
@@ -339,8 +366,7 @@ export default async function DashboardPage({
     const name = expense.category?.name ?? "Sin categoría";
     byCategory.set(
       name,
-      (byCategory.get(name) ?? 0) +
-        Math.round(Number(expense.amount) * 100)
+      (byCategory.get(name) ?? 0) + Math.round(Number(expense.amount) * 100)
     );
   }
   const categoryBreakdown = [...byCategory.entries()]
@@ -384,8 +410,14 @@ export default async function DashboardPage({
     ano: "vs año anterior",
   };
 
-  // Tarjeta de meta/proyección: aparece si hay meta o proyección del período.
-  const showGoalCard = goalCents !== null || projectionCents !== null;
+  // Rótulo de la meta según el período seleccionado.
+  const META_LABEL: Record<PeriodType, string> = {
+    dia: "Meta del día",
+    semana: "Meta de la semana",
+    mes: "Meta del mes",
+    trimestre: "Meta del trimestre",
+    ano: "Meta del año",
+  };
 
   return (
     <div className="space-y-6">
@@ -393,18 +425,10 @@ export default async function DashboardPage({
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-balance">
             {greeting}
-            {firstName ? `, ${firstName}` : ""}, bienvenido a tu dashboard
+            {firstName ? ` ${firstName}` : ""}
+            <br />
+            ¡Bienvenido a tu dashboard!
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Tu semana comenzó el {WEEKDAYS_ES[user.weekStartDay]} y termina el{" "}
-            {WEEKDAYS_ES[(user.weekStartDay + 6) % 7]} ·{" "}
-            <Link
-              href="/configuracion"
-              className="underline-offset-4 hover:underline"
-            >
-              cambiar
-            </Link>
-          </p>
         </div>
         {companies.length > 1 && (
           <CompanyFilter companies={companies} selected={companyId} />
@@ -434,19 +458,19 @@ export default async function DashboardPage({
       <Card>
         <CardContent className="grid grid-cols-2 gap-4 pt-6">
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Ingresos</p>
+            <p className="text-muted-foreground text-sm">Ingresos</p>
             <p className="text-2xl font-semibold tabular-nums">
               {formatCurrency(incomeCents / 100)}
             </p>
-            <div className="space-y-1 text-footnote text-muted-foreground">
+            <div className="text-footnote text-muted-foreground space-y-1">
+              <p>{packages} paquetes</p>
               <p>
-                {packages} paquetes ·{" "}
                 {daysWorked === 1
                   ? "1 día trabajado"
                   : `${daysWorked} días trabajados`}
               </p>
               {changePct !== null && (
-                <p className="font-medium text-foreground">
+                <p className="text-foreground font-medium">
                   {changePct >= 0 ? "▲" : "▼"} {changePct >= 0 ? "+" : ""}
                   {changePct}% {PREV_PERIOD_LABEL[periodo]}
                 </p>
@@ -454,90 +478,61 @@ export default async function DashboardPage({
             </div>
           </div>
           <div className="space-y-2 border-l pl-4">
-            <p className="text-sm text-muted-foreground">Gastos</p>
+            <p className="text-muted-foreground text-sm">Gastos</p>
             <p className="text-2xl font-semibold tabular-nums">
               −{formatCurrency(expenseCents / 100)}
             </p>
-            <div className="space-y-1 text-footnote text-muted-foreground">
+            <div className="text-footnote text-muted-foreground space-y-1">
               <p>
                 {expenses.length === 1
                   ? "1 gasto registrado"
                   : `${expenses.length} gastos registrados`}
               </p>
+              {expenseChangePct !== null && (
+                <p className="text-foreground font-medium">
+                  {expenseChangePct >= 0 ? "▲" : "▼"}{" "}
+                  {expenseChangePct >= 0 ? "+" : ""}
+                  {expenseChangePct}% {PREV_PERIOD_LABEL[periodo]}
+                </p>
+              )}
               {companyId && <p>Los gastos no se filtran por empresa.</p>}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Ganancia neta</CardDescription>
-            <CardTitle
+      <Card>
+        <CardContent className="grid grid-cols-2 gap-4 pt-6">
+          <div className="space-y-2">
+            <p className="text-muted-foreground text-sm">Ganancia neta</p>
+            <p
               className={cn(
-                "text-2xl",
+                "text-2xl font-semibold tabular-nums",
                 netCents < 0 && "text-destructive"
               )}
             >
               {formatCurrency(netCents / 100)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-footnote text-muted-foreground">
-            <p>
-              {incomeCents > 0
-                ? `Margen: ${Math.round((netCents / incomeCents) * 100)}%`
-                : "Ingresos − gastos del período"}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Promedios</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
-              {perHourCents !== null
-                ? `${formatCurrency(perHourCents / 100)}/h`
-                : "—/h"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-footnote text-muted-foreground">
-            <p>
-              {perMileCents !== null
-                ? `${formatCurrency(perMileCents / 100)}/milla`
-                : "—/milla (sin millas registradas)"}
-            </p>
-            <p>
-              {totalMinutes > 0
-                ? formatMinutes(totalMinutes)
-                : "Horas no registradas"}
-              {totalMilesTenths > 0 && ` · ${totalMilesTenths / 10} mi`}
-            </p>
-            {deductionCents !== null && (
-              <p className="font-medium text-foreground">
-                🧾 Deducción est.: {formatCurrency(deductionCents / 100)} (
-                {formatCurrency(mileageRateCents / 100)}/mi)
+            <div className="text-footnote text-muted-foreground space-y-1">
+              <p>
+                {incomeCents > 0
+                  ? `Margen: ${Math.round((netCents / incomeCents) * 100)}%`
+                  : "Ingresos − gastos del período"}
               </p>
-            )}
-            {fuelCents !== null && (
-              <p className="font-medium text-foreground">
-                ⛽ Combustible est.: {formatCurrency(fuelCents / 100)}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        {showGoalCard && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>
-                {goalCents !== null ? "Meta del período" : "Proyección"}
-              </CardDescription>
-              <CardTitle className="text-2xl tabular-nums">
-                {goalCents !== null && goalPct !== null
-                  ? `${goalPct}%`
-                  : `~${formatCurrency((projectionCents ?? 0) / 100)}`}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-footnote text-muted-foreground">
+            </div>
+          </div>
+          <div className="space-y-2 border-l pl-4">
+            <p className="text-muted-foreground text-sm">
+              {META_LABEL[periodo]}
+            </p>
+            <p className="text-2xl font-semibold tabular-nums">
+              {goalPct !== null
+                ? `${goalPct}%`
+                : projectionCents !== null
+                  ? `~${formatCurrency(projectionCents / 100)}`
+                  : "—"}
+            </p>
+            <div className="text-footnote text-muted-foreground space-y-2">
               {goalCents !== null && goalPct !== null && (
                 <>
                   <Progress value={goalPct} aria-label="Progreso de la meta" />
@@ -563,10 +558,108 @@ export default async function DashboardPage({
                     : ` los ${goalGap.remainingDays} días que quedan`}
                 </p>
               )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+              {goalCents === null && projectionCents === null && (
+                <p>
+                  {goalPeriod ? (
+                    <>
+                      Aún no defines una meta. Configúrala en{" "}
+                      <Link
+                        href="/configuracion"
+                        className="underline-offset-4 hover:underline"
+                      >
+                        Ajustes
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    "El trimestre no tiene meta propia."
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {historyLogs.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Constancia</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ActivityCalendar
+              byDay={byDay}
+              today={today}
+              weekStartDay={user.weekStartDay}
+            />
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+              <span>
+                🔥 Racha:{" "}
+                <span className="font-semibold">
+                  {streak === 1 ? "1 día" : `${streak} días`}
+                </span>
+              </span>
+              {bestDay && (
+                <span>
+                  💪 Mejor día:{" "}
+                  <span className="font-semibold">
+                    {formatCurrency(bestDay[1] / 100)}
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    ({formatDate(new Date(bestDay[0]))})
+                  </span>
+                </span>
+              )}
+              {bestWeek && (
+                <span>
+                  🏆 Mejor semana:{" "}
+                  <span className="font-semibold">
+                    {formatCurrency(bestWeek[1] / 100)}
+                  </span>{" "}
+                  <span className="text-muted-foreground">
+                    (del {formatDate(new Date(bestWeek[0]))})
+                  </span>
+                </span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardDescription>Promedios</CardDescription>
+          <CardTitle className="text-2xl tabular-nums">
+            {perHourCents !== null
+              ? `${formatCurrency(perHourCents / 100)}/h`
+              : "—/h"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-footnote text-muted-foreground space-y-1">
+          <p>
+            {perMileCents !== null
+              ? `${formatCurrency(perMileCents / 100)}/milla`
+              : "—/milla (sin millas registradas)"}
+          </p>
+          <p>
+            {totalMinutes > 0
+              ? formatMinutes(totalMinutes)
+              : "Horas no registradas"}
+            {totalMilesTenths > 0 && ` · ${totalMilesTenths / 10} mi`}
+          </p>
+          {deductionCents !== null && (
+            <p className="text-foreground font-medium">
+              🧾 Deducción est.: {formatCurrency(deductionCents / 100)} (
+              {formatCurrency(mileageRateCents / 100)}/mi)
+            </p>
+          )}
+          {fuelCents !== null && (
+            <p className="text-foreground font-medium">
+              ⛽ Combustible est.: {formatCurrency(fuelCents / 100)}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {breakeven && (
         <Card>
@@ -592,55 +685,10 @@ export default async function DashboardPage({
               </p>
             ) : (
               <p>
-                Registra días con paquetes para conocer tu $/paquete histórico
-                y calcular cuántos necesitas al día.
+                Registra días con paquetes para conocer tu $/paquete histórico y
+                calcular cuántos necesitas al día.
               </p>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {historyLogs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Constancia</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ActivityCalendar
-              byDay={byDay}
-              today={today}
-              weekStartDay={user.weekStartDay}
-            />
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <span>
-              🔥 Racha:{" "}
-              <span className="font-semibold">
-                {streak === 1 ? "1 día" : `${streak} días`}
-              </span>
-            </span>
-            {bestDay && (
-              <span>
-                💪 Mejor día:{" "}
-                <span className="font-semibold">
-                  {formatCurrency(bestDay[1] / 100)}
-                </span>{" "}
-                <span className="text-muted-foreground">
-                  ({formatDate(new Date(bestDay[0]))})
-                </span>
-              </span>
-            )}
-            {bestWeek && (
-              <span>
-                🏆 Mejor semana:{" "}
-                <span className="font-semibold">
-                  {formatCurrency(bestWeek[1] / 100)}
-                </span>{" "}
-                <span className="text-muted-foreground">
-                  (del {formatDate(new Date(bestWeek[0]))})
-                </span>
-              </span>
-            )}
-          </div>
           </CardContent>
         </Card>
       )}
@@ -670,7 +718,7 @@ export default async function DashboardPage({
           <CardContent>
             {chartData.length === 0 ? (
               <div className="flex flex-col items-start gap-3 py-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   No hay registros en este período.
                 </p>
                 <Button asChild size="sm">
@@ -689,11 +737,13 @@ export default async function DashboardPage({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Gastos por categoría</CardTitle>
-            <CardDescription>En qué se va el dinero del período.</CardDescription>
+            <CardDescription>
+              En qué se va el dinero del período.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {categoryBreakdown.length === 0 ? (
-              <p className="py-4 text-sm text-muted-foreground">
+              <p className="text-muted-foreground py-4 text-sm">
                 No hay gastos en este período.
               </p>
             ) : (
@@ -702,13 +752,13 @@ export default async function DashboardPage({
                   <div key={category.name} className="space-y-1">
                     <div className="flex items-center justify-between gap-2 text-sm">
                       <span className="truncate">{category.name}</span>
-                      <span className="shrink-0 text-muted-foreground">
+                      <span className="text-muted-foreground shrink-0">
                         {formatCurrency(category.cents / 100)} · {category.pct}%
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div className="bg-muted h-2 overflow-hidden rounded-full">
                       <div
-                        className="h-full rounded-full bg-chart-3"
+                        className="bg-chart-3 h-full rounded-full"
                         style={{ width: `${category.pct}%` }}
                       />
                     </div>
