@@ -29,19 +29,22 @@ export function ActivityCalendar({
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto pb-1">
+      {/* Una columna por semana (grid-cols-12) que ocupa todo el ancho; los
+          cuadros son cuadrados (aspect-square) y se estiran de borde a borde. */}
+      <div className="grid grid-cols-12 gap-1">
         {weeks.map((week, i) => (
           <div key={i} className="flex flex-col gap-1">
             {week.map(({ date, cents, isFuture }) => {
               if (isFuture) {
                 return (
-                  <div key={date.toISOString()} className="size-3.5 rounded-[3px]" />
+                  <div
+                    key={date.toISOString()}
+                    className="aspect-square rounded-[18%]"
+                  />
                 );
               }
               const intensity =
-                cents > 0 && maxCents > 0
-                  ? 0.3 + 0.7 * (cents / maxCents)
-                  : 0;
+                cents > 0 && maxCents > 0 ? 0.3 + 0.7 * (cents / maxCents) : 0;
               return (
                 <div
                   key={date.toISOString()}
@@ -50,8 +53,8 @@ export function ActivityCalendar({
                   }`}
                   className={
                     cents > 0
-                      ? "size-3.5 rounded-[3px] bg-primary"
-                      : "size-3.5 rounded-[3px] bg-muted"
+                      ? "bg-primary aspect-square rounded-[18%]"
+                      : "bg-muted aspect-square rounded-[18%]"
                   }
                   style={cents > 0 ? { opacity: intensity } : undefined}
                 />
@@ -60,7 +63,7 @@ export function ActivityCalendar({
           </div>
         ))}
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-muted-foreground text-xs">
         Últimas {WEEKS} semanas · más oscuro = más ganancia · pasa el cursor
         para ver el día.
       </p>
