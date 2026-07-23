@@ -11,10 +11,16 @@ import {
   shiftPeriod,
   startOfWeek,
   toDateParam,
+  WEEKDAYS_ES,
   type PeriodType,
 } from "@/lib/dates/week";
 import { currentHourForUser, todayForUser } from "@/lib/dates/server";
-import { formatCurrency, formatDate, formatMinutes } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDate,
+  formatMinutes,
+  formatPeriodRange,
+} from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { GoalPeriod } from "@/generated/prisma/enums";
 import { Button } from "@/components/ui/button";
@@ -33,7 +39,10 @@ import {
   type HistoryLogLite,
 } from "@/lib/metrics";
 import { ActivityCalendar } from "@/components/dashboard/activity-calendar";
-import { WeekdayPerformanceTable } from "@/components/dashboard/weekday-performance";
+import {
+  PerformanceList,
+  type PerformanceRow,
+} from "@/components/dashboard/performance-list";
 import { ShareButton } from "@/components/dashboard/share-button";
 import { CompanyFilter } from "@/components/dashboard/company-filter";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
@@ -419,6 +428,106 @@ export default async function DashboardPage({
     ano: "Meta del año",
   };
 
+  // Tarjeta "Rendimiento": se adapta al selector.
+  // - Día: los 7 días de la semana (rotados: el día seleccionado arriba), con
+  //   el $/h promedio de las últimas 12 semanas.
+  // - Semana/Mes/Trimestre/Año: ventana móvil de los últimos N períodos que
+  //   terminan en el visible, con la ganancia REAL de cada uno.
+  const PERF_TITLE: Record<PeriodType, string> = {
+    dia: "Rendimiento por día",
+    semana: "Rendimiento por semana",
+    mes: "Rendimiento por mes",
+    trimestre: "Rendimiento por trimestre",
+    ano: "Rendimiento por año",
+  };
+  const PERF_SUBTITLE: Record<PeriodType, string> = {
+    dia: "Qué día de la semana te rinde más · promedio de 12 semanas.",
+    semana: "Ganancia real de tus últimas 8 semanas.",
+    mes: "Ganancia real de tus últimos 3 meses.",
+    trimestre: "Ganancia real de tus últimos 3 trimestres.",
+    ano: "Ganancia real de tus últimos años.",
+  };
+  const PERF_WINDOW: Record<Exclude<PeriodType, "dia">, number> = {
+    semana: 8,
+    mes: 3,
+    trimestre: 3,
+    ano: 3,
+  };
+
+  let perfRows: PerformanceRow[] = [];
+  if (periodo === "dia") {
+    if (recentHistory.length > 0) {
+      const selectedWeekday = date.getUTCDay();
+      const byWeekday = new Map(weekdayRows.map((row) => [row.weekday, row]));
+      const perHours = weekdayRows.map((row) => row.perHourCents ?? 0);
+      const maxPerHour = Math.max(...perHours, 1);
+      const bestPerHour = Math.max(0, ...perHours);
+      perfRows = Array.from({ length: 7 }, (_, offset) => {
+        const weekday = (selectedWeekday + offset) % 7;
+        const row = byWeekday.get(weekday);
+        const perHour = row?.perHourCents ?? null;
+        const days = row?.daysWorked ?? 0;
+        return {
+          key: `wd-${weekday}`,
+          label: WEEKDAYS_ES[weekday],
+          meta:
+            days > 0
+              ? `${days} ${days === 1 ? "día" : "días"}`
+              : "Sin registros",
+          value: perHour !== null ? `${formatCurrency(perHour / 100)}/h` : "—",
+          fraction: (perHour ?? 0) / maxPerHour,
+          best: perHour !== null && perHour === bestPerHour && bestPerHour > 0,
+        };
+      });
+    }
+  } else {
+    const buckets: {
+      start: Date;
+      totalCents: number;
+      days: number;
+      isCurrent: boolean;
+    }[] = [];
+    let cursor = date;
+    for (let i = 0; i < PERF_WINDOW[periodo]; i++) {
+      const range = getPeriodRange(periodo, cursor, user.weekStartDay);
+      const inRange = historyLogs.filter(
+        (log) => log.date >= range.start && log.date <= range.end
+      );
+      buckets.push({
+        start: range.start,
+        totalCents: inRange.reduce(
+          (acc, log) => acc + Math.round(Number(log.totalEarned) * 100),
+          0
+        ),
+        days: new Set(inRange.map((log) => toDateParam(log.date))).size,
+        isCurrent: today >= range.start && today <= range.end,
+      });
+      cursor = shiftPeriod(periodo, cursor, -1);
+    }
+    // "Los últimos años con datos": en año se omiten los períodos vacíos.
+    const visible =
+      periodo === "ano" ? buckets.filter((b) => b.days > 0) : buckets;
+    if (visible.some((b) => b.days > 0)) {
+      const totals = visible.map((b) => b.totalCents);
+      const maxTotal = Math.max(...totals, 1);
+      const bestTotal = Math.max(0, ...totals);
+      perfRows = visible.map((b) => {
+        const end = getPeriodRange(periodo, b.start, user.weekStartDay).end;
+        return {
+          key: toDateParam(b.start),
+          label: formatPeriodRange(periodo, b.start, end),
+          meta:
+            (b.days > 0
+              ? `${b.days} ${b.days === 1 ? "día" : "días"}`
+              : "Sin registros") + (b.isCurrent ? " · en curso" : ""),
+          value: formatCurrency(b.totalCents / 100),
+          fraction: b.totalCents / maxTotal,
+          best: b.totalCents === bestTotal && bestTotal > 0,
+        };
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -693,16 +802,14 @@ export default async function DashboardPage({
         </Card>
       )}
 
-      {recentHistory.length > 0 && (
+      {perfRows.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Rendimiento por día</CardTitle>
-            <CardDescription>
-              Qué día de la semana te rinde más · últimas 12 semanas.
-            </CardDescription>
+            <CardTitle className="text-base">{PERF_TITLE[periodo]}</CardTitle>
+            <CardDescription>{PERF_SUBTITLE[periodo]}</CardDescription>
           </CardHeader>
           <CardContent>
-            <WeekdayPerformanceTable rows={weekdayRows} />
+            <PerformanceList rows={perfRows} />
           </CardContent>
         </Card>
       )}
