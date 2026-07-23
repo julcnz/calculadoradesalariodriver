@@ -20,8 +20,8 @@ import { ReminderSettings } from "@/components/settings/reminder-settings";
 import { SharedWeeksList } from "@/components/settings/shared-weeks-list";
 import { CompanyQuickAdd } from "@/components/settings/company-quick-add";
 import { RouteQuickAdd } from "@/components/settings/route-quick-add";
-import { addDays } from "@/lib/dates/week";
 import { formatDate } from "@/lib/format";
+import { sharedPeriodLabel } from "@/lib/shared-week";
 
 export const metadata: Metadata = { title: "Configuración" };
 
@@ -47,7 +47,7 @@ export default async function SettingsPage() {
     prisma.sharedWeek.findMany({
       where: { userId, revokedAt: null },
       orderBy: { weekStart: "desc" },
-      select: { id: true, weekStart: true, createdAt: true },
+      select: { id: true, periodType: true, weekStart: true, createdAt: true },
     }),
     prisma.company.findMany({
       where: { userId },
@@ -296,17 +296,17 @@ export default async function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Semanas compartidas</CardTitle>
+          <CardTitle>Períodos compartidos</CardTitle>
           <CardDescription>
             Enlaces públicos de resumen que has creado. Cualquiera con el
-            enlace puede ver los ingresos de esa semana.
+            enlace puede ver los ingresos de ese período.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <SharedWeeksList
             items={sharedWeeks.map((week) => ({
               id: week.id,
-              weekLabel: `Semana del ${formatDate(week.weekStart)} al ${formatDate(addDays(week.weekStart, 6))}`,
+              periodLabel: sharedPeriodLabel(week.periodType, week.weekStart),
               createdLabel: formatDate(week.createdAt),
             }))}
           />

@@ -3,11 +3,18 @@
 import { useState, useTransition } from "react";
 import { Check, Share2 } from "lucide-react";
 import { createSharedWeekLink } from "@/server/actions/shared-weeks";
+import type { PeriodType } from "@/lib/dates/week";
 import { Button } from "@/components/ui/button";
 
-// Comparte la semana visible: crea el enlace público y abre el share sheet
-// del sistema (móvil) o lo copia al portapapeles.
-export function ShareWeekButton({ weekStartParam }: { weekStartParam: string }) {
+// Comparte el período visible (día/semana/mes/trimestre/año): crea el enlace
+// público y abre el share sheet del sistema (móvil) o lo copia al portapapeles.
+export function ShareButton({
+  periodo,
+  fecha,
+}: {
+  periodo: PeriodType;
+  fecha: string;
+}) {
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +22,7 @@ export function ShareWeekButton({ weekStartParam }: { weekStartParam: string }) 
   const share = () => {
     setError(null);
     startTransition(async () => {
-      const result = await createSharedWeekLink(weekStartParam);
+      const result = await createSharedWeekLink(periodo, fecha);
       if ("error" in result) {
         setError(result.error);
         return;
@@ -48,7 +55,7 @@ export function ShareWeekButton({ weekStartParam }: { weekStartParam: string }) 
         disabled={isPending}
       >
         {copied ? <Check className="size-4" /> : <Share2 className="size-4" />}
-        {copied ? "Enlace copiado" : isPending ? "Creando…" : "Compartir semana"}
+        {copied ? "Enlace copiado" : isPending ? "Creando…" : "Compartir"}
       </Button>
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 export type SharedWeekItem = {
   id: string;
-  weekLabel: string;
+  periodLabel: string;
   createdLabel: string;
 };
 
@@ -17,8 +17,8 @@ export function SharedWeeksList({ items }: { items: SharedWeekItem[] }) {
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No has compartido ninguna semana. Hazlo desde el dashboard con el
-        botón &ldquo;Compartir semana&rdquo; en la vista semanal.
+        No has compartido ningún período. Hazlo desde el dashboard con el
+        botón &ldquo;Compartir&rdquo;.
       </p>
     );
   }
@@ -31,9 +31,9 @@ export function SharedWeeksList({ items }: { items: SharedWeekItem[] }) {
           className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
         >
           <div className="min-w-0">
-            <p className="text-sm font-medium">{item.weekLabel}</p>
+            <p className="text-sm font-medium">{item.periodLabel}</p>
             <p className="text-xs text-muted-foreground">
-              Compartida el {item.createdLabel}
+              Compartido el {item.createdLabel}
             </p>
           </div>
           <Button
@@ -50,8 +50,8 @@ export function SharedWeeksList({ items }: { items: SharedWeekItem[] }) {
       ))}
       <p className="text-xs text-muted-foreground">
         Revocar un enlace lo deja de mostrar para siempre. El enlace completo
-        solo se muestra al crearlo; para recuperarlo, vuelve a compartir esa
-        semana desde el dashboard.
+        solo se muestra al crearlo; para recuperarlo, vuelve a compartir ese
+        período desde el dashboard.
       </p>
     </div>
   );

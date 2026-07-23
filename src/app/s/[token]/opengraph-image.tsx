@@ -1,8 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { loadSharedWeekSummary } from "@/lib/shared-week";
+import { formatCurrency } from "@/lib/format";
+import {
+  describeSharedPeriod,
+  formatSharedPeriodRange,
+  loadSharedWeekSummary,
+} from "@/lib/shared-week";
 
 // OG image dinámica del resumen compartido (preview rica en WhatsApp).
 // Satori: solo flexbox y colores fijos (nada de CSS vars ni grid).
@@ -10,7 +14,7 @@ import { loadSharedWeekSummary } from "@/lib/shared-week";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Resumen semanal · Driver Calculator";
+export const alt = "Resumen · Driver Calculator";
 
 const BRAND_GREEN = "#4ade80";
 const BRAND_BLACK = "#0a0a0a";
@@ -134,9 +138,10 @@ export default async function Image({
 
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", fontSize: 30, color: "#a1a1aa" }}>
-            {summary.ownerName
-              ? `La semana de ${summary.ownerName} · ${formatDate(summary.weekStart)} – ${formatDate(summary.weekEnd)}`
-              : `Semana del ${formatDate(summary.weekStart)} al ${formatDate(summary.weekEnd)}`}
+            {(summary.ownerName
+              ? describeSharedPeriod(summary.periodType).ownerKind(summary.ownerName)
+              : describeSharedPeriod(summary.periodType).kind) +
+              ` · ${formatSharedPeriodRange(summary)}`}
           </div>
           <div
             style={{

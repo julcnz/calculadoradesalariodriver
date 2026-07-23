@@ -14,7 +14,7 @@ import {
   WEEKDAYS_ES,
   type PeriodType,
 } from "@/lib/dates/week";
-import { todayForUser } from "@/lib/dates/server";
+import { currentHourForUser, todayForUser } from "@/lib/dates/server";
 import { formatCurrency, formatDate, formatMinutes } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { GoalPeriod } from "@/generated/prisma/enums";
@@ -35,7 +35,7 @@ import {
 } from "@/lib/metrics";
 import { ActivityCalendar } from "@/components/dashboard/activity-calendar";
 import { WeekdayPerformanceTable } from "@/components/dashboard/weekday-performance";
-import { ShareWeekButton } from "@/components/dashboard/share-week-button";
+import { ShareButton } from "@/components/dashboard/share-button";
 import { CompanyFilter } from "@/components/dashboard/company-filter";
 import { PeriodSelector } from "@/components/dashboard/period-selector";
 import {
@@ -55,8 +55,9 @@ export default async function DashboardPage({
 
   const periodo: PeriodType =
     params.periodo && isPeriodType(params.periodo) ? params.periodo : "semana";
-  // "Hoy" en la zona horaria del navegador del usuario (cookie tz).
+  // "Hoy" y la hora local en la zona del navegador del usuario (cookie tz).
   const today = await todayForUser();
+  const hour = await currentHourForUser();
   const date =
     params.fecha && /^\d{4}-\d{2}-\d{2}$/.test(params.fecha)
       ? new Date(params.fecha)
@@ -66,6 +67,7 @@ export default async function DashboardPage({
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: {
+        name: true,
         weekStartDay: true,
         mileageRate: true,
         vehicleMpg: true,
@@ -368,13 +370,33 @@ export default async function DashboardPage({
     }))
     .sort((a, b) => b.total - a.total);
 
+  // Saludo según la hora local del usuario + su primer nombre.
+  const greeting =
+    hour < 12 ? "Buenos días" : hour < 20 ? "Buenas tardes" : "Buenas noches";
+  const firstName = user.name?.trim().split(/\s+/)[0] ?? null;
+
+  // "vs …" en la comparativa: el período anterior según el seleccionado.
+  const PREV_PERIOD_LABEL: Record<PeriodType, string> = {
+    dia: "vs día anterior",
+    semana: "vs semana anterior",
+    mes: "vs mes anterior",
+    trimestre: "vs trimestre anterior",
+    ano: "vs año anterior",
+  };
+
+  // Tarjeta de meta/proyección: aparece si hay meta o proyección del período.
+  const showGoalCard = goalCents !== null || projectionCents !== null;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-balance">
+            {greeting}
+            {firstName ? `, ${firstName}` : ""}, bienvenido a tu dashboard
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Semana de {WEEKDAYS_ES[user.weekStartDay]} a{" "}
+            Tu semana comenzó el {WEEKDAYS_ES[user.weekStartDay]} y termina el{" "}
             {WEEKDAYS_ES[(user.weekStartDay + 6) % 7]} ·{" "}
             <Link
               href="/configuracion"
@@ -389,95 +411,66 @@ export default async function DashboardPage({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <PeriodSelector
-          periodo={periodo}
-          date={date}
-          today={today}
-          weekStartDay={user.weekStartDay}
-          empresa={companyId}
-        />
-        <div className="flex items-center gap-2">
-          {showRepeatLast && (
-            <Button asChild size="sm" variant="outline">
-              <Link href="/registros/nuevo?desde=ultimo">
-                <RotateCcw /> {repeatLabel}
-              </Link>
-            </Button>
-          )}
-          {periodo === "semana" && (
-            <ShareWeekButton weekStartParam={toDateParam(start)} />
-          )}
-        </div>
-      </div>
+      <PeriodSelector
+        periodo={periodo}
+        date={date}
+        today={today}
+        weekStartDay={user.weekStartDay}
+        empresa={companyId}
+        actions={
+          <div className="ml-auto flex items-center gap-2">
+            {showRepeatLast && (
+              <Button asChild size="sm" variant="outline">
+                <Link href="/registros/nuevo?desde=ultimo">
+                  <RotateCcw /> {repeatLabel}
+                </Link>
+              </Button>
+            )}
+            <ShareButton periodo={periodo} fecha={toDateParam(date)} />
+          </div>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Ingresos</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
+      <Card>
+        <CardContent className="grid grid-cols-2 gap-4 pt-6">
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Ingresos</p>
+            <p className="text-2xl font-semibold tabular-nums">
               {formatCurrency(incomeCents / 100)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-footnote text-muted-foreground">
-            <p>
-              {packages} paquetes ·{" "}
-              {daysWorked === 1
-                ? "1 día trabajado"
-                : `${daysWorked} días trabajados`}
             </p>
-            {changePct !== null && (
-              <p className="font-medium text-foreground">
-                {changePct >= 0 ? "▲" : "▼"} {changePct >= 0 ? "+" : ""}
-                {changePct}% vs período anterior
-              </p>
-            )}
-            {projectionCents !== null && (
+            <div className="space-y-1 text-footnote text-muted-foreground">
               <p>
-                Proyección del período: ~
-                {formatCurrency(projectionCents / 100)}
+                {packages} paquetes ·{" "}
+                {daysWorked === 1
+                  ? "1 día trabajado"
+                  : `${daysWorked} días trabajados`}
               </p>
-            )}
-            {goalCents !== null && goalPct !== null && (
-              <div className="space-y-1">
-                <Progress value={goalPct} aria-label="Progreso de la meta" />
-                <p>
-                  Meta: {formatCurrency(goalCents / 100)} · {goalPct}%
-                  {goalPct >= 100 && " 🎉"}
+              {changePct !== null && (
+                <p className="font-medium text-foreground">
+                  {changePct >= 0 ? "▲" : "▼"} {changePct >= 0 ? "+" : ""}
+                  {changePct}% {PREV_PERIOD_LABEL[periodo]}
                 </p>
-                {goalGap !== null && (
-                  <p>
-                    Para llegar: ~{formatCurrency(goalGap.perDayCents / 100)}
-                    /día
-                    {goalGap.packagesPerDay !== null &&
-                      ` (≈${goalGap.packagesPerDay} paquetes/día)`}
-                    {goalGap.remainingDays === 1
-                      ? " hoy"
-                      : ` los ${goalGap.remainingDays} días que quedan`}
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Gastos</CardDescription>
-            <CardTitle className="text-2xl tabular-nums">
+              )}
+            </div>
+          </div>
+          <div className="space-y-2 border-l pl-4">
+            <p className="text-sm text-muted-foreground">Gastos</p>
+            <p className="text-2xl font-semibold tabular-nums">
               −{formatCurrency(expenseCents / 100)}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-footnote text-muted-foreground">
-            <p>
-              {expenses.length === 1
-                ? "1 gasto registrado"
-                : `${expenses.length} gastos registrados`}
             </p>
-            {companyId && (
-              <p>Los gastos no se filtran por empresa.</p>
-            )}
-          </CardContent>
-        </Card>
+            <div className="space-y-1 text-footnote text-muted-foreground">
+              <p>
+                {expenses.length === 1
+                  ? "1 gasto registrado"
+                  : `${expenses.length} gastos registrados`}
+              </p>
+              {companyId && <p>Los gastos no se filtran por empresa.</p>}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Ganancia neta</CardDescription>
@@ -532,6 +525,47 @@ export default async function DashboardPage({
             )}
           </CardContent>
         </Card>
+        {showGoalCard && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>
+                {goalCents !== null ? "Meta del período" : "Proyección"}
+              </CardDescription>
+              <CardTitle className="text-2xl tabular-nums">
+                {goalCents !== null && goalPct !== null
+                  ? `${goalPct}%`
+                  : `~${formatCurrency((projectionCents ?? 0) / 100)}`}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 text-footnote text-muted-foreground">
+              {goalCents !== null && goalPct !== null && (
+                <>
+                  <Progress value={goalPct} aria-label="Progreso de la meta" />
+                  <p>
+                    Meta: {formatCurrency(goalCents / 100)} · {goalPct}%
+                    {goalPct >= 100 && " 🎉"}
+                  </p>
+                </>
+              )}
+              {projectionCents !== null && (
+                <p>
+                  Proyección del período: ~
+                  {formatCurrency(projectionCents / 100)}
+                </p>
+              )}
+              {goalGap !== null && (
+                <p>
+                  Para llegar: ~{formatCurrency(goalGap.perDayCents / 100)}/día
+                  {goalGap.packagesPerDay !== null &&
+                    ` (≈${goalGap.packagesPerDay} paquetes/día)`}
+                  {goalGap.remainingDays === 1
+                    ? " hoy"
+                    : ` los ${goalGap.remainingDays} días que quedan`}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {breakeven && (

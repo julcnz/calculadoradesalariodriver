@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -6,7 +7,7 @@ import {
   toDateParam,
   type PeriodType,
 } from "@/lib/dates/week";
-import { formatDate } from "@/lib/format";
+import { formatPeriodRange } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -32,24 +33,7 @@ function buildHref(
 
 function rangeLabel(periodo: PeriodType, date: Date, weekStartDay: number) {
   const { start, end } = getPeriodRange(periodo, date, weekStartDay);
-  switch (periodo) {
-    case "dia":
-      return formatDate(start);
-    case "semana":
-      return `${formatDate(start)} – ${formatDate(end)}`;
-    case "mes": {
-      const label = new Intl.DateTimeFormat("es", {
-        month: "long",
-        year: "numeric",
-        timeZone: "UTC",
-      }).format(start);
-      return label.charAt(0).toUpperCase() + label.slice(1);
-    }
-    case "trimestre":
-      return `T${Math.floor(start.getUTCMonth() / 3) + 1} ${start.getUTCFullYear()}`;
-    case "ano":
-      return String(start.getUTCFullYear());
-  }
+  return formatPeriodRange(periodo, start, end);
 }
 
 export function PeriodSelector({
@@ -58,12 +42,14 @@ export function PeriodSelector({
   today,
   weekStartDay,
   empresa,
+  actions,
 }: {
   periodo: PeriodType;
   date: Date;
   today: Date;
   weekStartDay: number;
   empresa?: string;
+  actions?: ReactNode;
 }) {
   const fecha = toDateParam(date);
   const { start, end } = getPeriodRange(periodo, date, weekStartDay);
@@ -87,7 +73,7 @@ export function PeriodSelector({
           </Link>
         ))}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Button asChild variant="outline" size="icon" aria-label="Período anterior">
           <Link
             href={buildHref(
@@ -118,6 +104,7 @@ export function PeriodSelector({
             <Link href={buildHref(periodo, null, empresa)}>Hoy</Link>
           </Button>
         )}
+        {actions}
       </div>
     </div>
   );

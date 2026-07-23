@@ -46,16 +46,21 @@ model User {
   sharedWeeks        SharedWeek[]
 }
 
-// Enlace público de resumen semanal (/s/[token]). Solo guardamos el hash
-// del token (patrón EmailVerificationToken); el token en claro solo existe
-// en la URL que se comparte. Un enlace activo por semana; revocable.
+// Enlace público de resumen de un período (/s/[token]). Solo guardamos el
+// hash del token (patrón EmailVerificationToken); el token en claro solo
+// existe en la URL que se comparte. Un enlace activo por período (tipo +
+// inicio); revocable. `weekStart` guarda el inicio del período (no solo la
+// semana; el nombre se conserva por compatibilidad). `periodType` es uno de
+// PeriodType (dia/semana/mes/trimestre/ano); default "semana" para las filas
+// creadas antes de esta columna.
 model SharedWeek {
-  id        String    @id @default(cuid())
-  userId    String
-  weekStart DateTime  @db.Date
-  tokenHash String    @unique
-  createdAt DateTime  @default(now())
-  revokedAt DateTime?
+  id         String    @id @default(cuid())
+  userId     String
+  periodType String    @default("semana")
+  weekStart  DateTime  @db.Date
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

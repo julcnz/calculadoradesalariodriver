@@ -38,6 +38,21 @@ export function todayInTimeZone(timeZone?: string): Date {
   }
 }
 
+// Hora local (0–23) del usuario según su zona. Se usa para el saludo del
+// dashboard (buenos días/tardes/noches). Zona inválida → hora del servidor.
+export function hourInTimeZone(timeZone?: string): number {
+  try {
+    const value = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "numeric",
+      hour12: false,
+    }).format(new Date());
+    return Number(value) % 24;
+  } catch {
+    return new Date().getHours();
+  }
+}
+
 export function startOfWeek(date: Date, weekStartDay: number): Date {
   const diff = (date.getUTCDay() - weekStartDay + 7) % 7;
   return addDays(date, -diff);

@@ -18,6 +18,33 @@ export function formatDate(date: Date): string {
   return dateFormatter.format(date);
 }
 
+// Rango legible de un período según su tipo, dado el inicio y el fin ya
+// calculados. Compartido por el selector del dashboard y el resumen público.
+export function formatPeriodRange(
+  periodType: import("@/lib/dates/week").PeriodType,
+  start: Date,
+  end: Date
+): string {
+  switch (periodType) {
+    case "dia":
+      return formatDate(start);
+    case "semana":
+      return `${formatDate(start)} – ${formatDate(end)}`;
+    case "mes": {
+      const label = new Intl.DateTimeFormat("es", {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(start);
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+    case "trimestre":
+      return `T${Math.floor(start.getUTCMonth() / 3) + 1} ${start.getUTCFullYear()}`;
+    case "ano":
+      return String(start.getUTCFullYear());
+  }
+}
+
 // Muestra valores opcionales: null/undefined → "—" (regla 2: nunca inventar 0).
 export function formatOptional(
   value: number | string | null | undefined,

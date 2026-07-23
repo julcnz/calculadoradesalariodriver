@@ -3,8 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BrandLogo, BrandMark } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
-import { formatCurrency, formatDate } from "@/lib/format";
-import { loadSharedWeekSummary } from "@/lib/shared-week";
+import { formatCurrency } from "@/lib/format";
+import {
+  describeSharedPeriod,
+  formatSharedPeriodRange,
+  loadSharedWeekSummary,
+} from "@/lib/shared-week";
 
 // Página PÚBLICA (sin sesión): resumen de una semana compartida por su
 // dueño. Muestra ingresos, paquetes, días, $/h y racha — sin gastos ni
@@ -19,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!summary) {
     return { title: "Resumen no disponible", robots: { index: false } };
   }
-  const title = `Semana del ${formatDate(summary.weekStart)} · Driver Calculator`;
+  const title = `${describeSharedPeriod(summary.periodType).kind} · ${formatSharedPeriodRange(summary)}`;
   const description = `${formatCurrency(summary.incomeCents / 100)} en ${summary.packages} paquetes. Calculado con Driver Calculator, la app gratuita para conductores de reparto.`;
   return {
     title,
@@ -34,6 +38,8 @@ export default async function SharedWeekPage({ params }: Props) {
   const { token } = await params;
   const summary = await loadSharedWeekSummary(token);
   if (!summary) notFound();
+
+  const period = describeSharedPeriod(summary.periodType);
 
   const stats = [
     {
@@ -65,16 +71,16 @@ export default async function SharedWeekPage({ params }: Props) {
         <div>
           <p className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
             {summary.ownerName
-              ? `La semana de ${summary.ownerName}`
-              : "Resumen semanal"}
+              ? period.ownerKind(summary.ownerName)
+              : period.kind}
           </p>
           <h1 className="mt-2 text-2xl font-bold tracking-tight text-balance sm:text-3xl">
-            Del {formatDate(summary.weekStart)} al {formatDate(summary.weekEnd)}
+            {formatSharedPeriodRange(summary)}
           </h1>
         </div>
 
         <div>
-          <p className="text-sm text-muted-foreground">Ingresos de la semana</p>
+          <p className="text-sm text-muted-foreground">{period.incomeLabel}</p>
           <p className="mt-1 text-5xl font-extrabold tracking-tighter text-emerald-600 sm:text-6xl dark:text-emerald-500">
             {formatCurrency(summary.incomeCents / 100)}
           </p>

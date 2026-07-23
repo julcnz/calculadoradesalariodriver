@@ -1,19 +1,47 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { addDays, toDateParam, todayInTimeZone } from "@/lib/dates/week";
+import {
+  addDays,
+  endOfMonth,
+  endOfQuarter,
+  endOfYear,
+  isPeriodType,
+  toDateParam,
+  todayInTimeZone,
+  type PeriodType,
+} from "@/lib/dates/week";
+import { formatPeriodRange } from "@/lib/format";
 
-// Resumen semanal público (/s/[token]). Datos en vivo de la semana fija
-// guardada; SIN gastos ni neto (decisión de privacidad). Compartido entre
-// la página y su opengraph-image para no duplicar cálculo.
+// Resumen público de un período (/s/[token]). Datos en vivo del período
+// fijo guardado; SIN gastos ni neto (decisión de privacidad). Compartido
+// entre la página y su opengraph-image para no duplicar cálculo.
 
 export function hashShareToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
+// Fin del período a partir de su inicio (ya alineado). No necesita
+// weekStartDay: el inicio guardado ya es la frontera del período.
+function periodEnd(periodType: PeriodType, start: Date): Date {
+  switch (periodType) {
+    case "dia":
+      return start;
+    case "semana":
+      return addDays(start, 6);
+    case "mes":
+      return endOfMonth(start);
+    case "trimestre":
+      return endOfQuarter(start);
+    case "ano":
+      return endOfYear(start);
+  }
+}
+
 export type SharedWeekSummary = {
   ownerName: string | null;
-  weekStart: Date;
-  weekEnd: Date;
+  periodType: PeriodType;
+  periodStart: Date;
+  periodEnd: Date;
   incomeCents: number;
   packages: number;
   daysWorked: number;
@@ -29,6 +57,7 @@ export async function loadSharedWeekSummary(
   const shared = await prisma.sharedWeek.findUnique({
     where: { tokenHash: hashShareToken(token) },
     select: {
+      periodType: true,
       weekStart: true,
       revokedAt: true,
       user: { select: { id: true, name: true, timeZone: true } },
@@ -36,14 +65,17 @@ export async function loadSharedWeekSummary(
   });
   if (!shared || shared.revokedAt) return null;
 
-  const weekStart = shared.weekStart;
-  const weekEnd = addDays(weekStart, 6);
+  const periodType: PeriodType = isPeriodType(shared.periodType)
+    ? shared.periodType
+    : "semana";
+  const periodStart = shared.weekStart;
+  const periodEndDate = periodEnd(periodType, periodStart);
 
   const [weekLogs, historyDates] = await Promise.all([
     prisma.workLog.findMany({
       where: {
         userId: shared.user.id,
-        date: { gte: weekStart, lte: weekEnd },
+        date: { gte: periodStart, lte: periodEndDate },
       },
       select: {
         totalEarned: true,
@@ -96,12 +128,74 @@ export async function loadSharedWeekSummary(
 
   return {
     ownerName: shared.user.name,
-    weekStart,
-    weekEnd,
+    periodType,
+    periodStart,
+    periodEnd: periodEndDate,
     incomeCents,
     packages,
     daysWorked,
     perHourCents,
     streak,
   };
+}
+
+// Textos del período para la página pública y la OG (misma copia en ambas).
+// `kind`: encabezado ("Resumen semanal"). `ownerKind`: variante con dueño
+// ("La semana de X"). `incomeLabel`: rótulo de la cifra de ingresos.
+export function describeSharedPeriod(periodType: PeriodType): {
+  kind: string;
+  ownerKind: (name: string) => string;
+  incomeLabel: string;
+} {
+  switch (periodType) {
+    case "dia":
+      return {
+        kind: "Resumen del día",
+        ownerKind: (name) => `El día de ${name}`,
+        incomeLabel: "Ingresos del día",
+      };
+    case "mes":
+      return {
+        kind: "Resumen mensual",
+        ownerKind: (name) => `El mes de ${name}`,
+        incomeLabel: "Ingresos del mes",
+      };
+    case "trimestre":
+      return {
+        kind: "Resumen trimestral",
+        ownerKind: (name) => `El trimestre de ${name}`,
+        incomeLabel: "Ingresos del trimestre",
+      };
+    case "ano":
+      return {
+        kind: "Resumen anual",
+        ownerKind: (name) => `El año de ${name}`,
+        incomeLabel: "Ingresos del año",
+      };
+    case "semana":
+      return {
+        kind: "Resumen semanal",
+        ownerKind: (name) => `La semana de ${name}`,
+        incomeLabel: "Ingresos de la semana",
+      };
+  }
+}
+
+// Rango legible de un período compartido (delega en formatPeriodRange).
+export function formatSharedPeriodRange(summary: SharedWeekSummary): string {
+  return formatPeriodRange(
+    summary.periodType,
+    summary.periodStart,
+    summary.periodEnd
+  );
+}
+
+// Etiqueta de un enlace compartido para la lista de Ajustes, p. ej.
+// "Resumen semanal: 20 jul 2026 – 26 jul 2026". Recibe el tipo crudo de BD.
+export function sharedPeriodLabel(periodTypeRaw: string, start: Date): string {
+  const periodType: PeriodType = isPeriodType(periodTypeRaw)
+    ? periodTypeRaw
+    : "semana";
+  const end = periodEnd(periodType, start);
+  return `${describeSharedPeriod(periodType).kind}: ${formatPeriodRange(periodType, start, end)}`;
 }
