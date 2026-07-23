@@ -7,7 +7,7 @@ import {
   toDateParam,
   type PeriodType,
 } from "@/lib/dates/week";
-import { formatPeriodRange } from "@/lib/format";
+import { formatPeriodRange, formatPeriodRangeShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -29,11 +29,6 @@ function buildHref(
   if (fecha) params.set("fecha", fecha);
   if (empresa) params.set("empresa", empresa);
   return `/dashboard?${params.toString()}`;
-}
-
-function rangeLabel(periodo: PeriodType, date: Date, weekStartDay: number) {
-  const { start, end } = getPeriodRange(periodo, date, weekStartDay);
-  return formatPeriodRange(periodo, start, end);
 }
 
 export function PeriodSelector({
@@ -92,8 +87,15 @@ export function PeriodSelector({
               <ChevronLeft className="size-4" />
             </Link>
           </Button>
-          <p className="min-w-32 text-center text-sm font-medium">
-            {rangeLabel(periodo, date, weekStartDay)}
+          <p className="min-w-20 text-center text-sm font-medium sm:min-w-32">
+            {/* Compacto en móvil (sin año) para que "Compartir" no baje;
+                completo desde sm. */}
+            <span className="sm:hidden">
+              {formatPeriodRangeShort(periodo, start, end)}
+            </span>
+            <span className="hidden sm:inline">
+              {formatPeriodRange(periodo, start, end)}
+            </span>
           </p>
           <Button
             asChild
