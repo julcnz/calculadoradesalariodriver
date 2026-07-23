@@ -1,11 +1,16 @@
 import { addDays, startOfWeek, toDateParam } from "@/lib/dates/week";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
+import {
+  ActivityCalendarGrid,
+  type CalendarCell,
+} from "./activity-calendar-grid";
 
 const WEEKS = 12;
 
 // Mapa de constancia estilo GitHub: una columna por semana (respetando el
 // día de inicio personalizado), un cuadrito por día, intensidad según la
-// ganancia de ese día. Server component puro.
+// ganancia de ese día. Calcula las celdas en el server y delega el render +
+// el popup al tocar a un client component.
 export function ActivityCalendar({
   byDay,
   today,
@@ -19,53 +24,29 @@ export function ActivityCalendar({
   const gridStart = addDays(currentWeekStart, -7 * (WEEKS - 1));
   const maxCents = Math.max(0, ...byDay.values());
 
-  const weeks = Array.from({ length: WEEKS }, (_, weekIndex) =>
-    Array.from({ length: 7 }, (_, dayIndex) => {
-      const date = addDays(gridStart, weekIndex * 7 + dayIndex);
-      const cents = byDay.get(toDateParam(date)) ?? 0;
-      return { date, cents, isFuture: date > today };
-    })
+  const weeks: CalendarCell[][] = Array.from(
+    { length: WEEKS },
+    (_, weekIndex) =>
+      Array.from({ length: 7 }, (_, dayIndex) => {
+        const date = addDays(gridStart, weekIndex * 7 + dayIndex);
+        const cents = byDay.get(toDateParam(date)) ?? 0;
+        return {
+          key: toDateParam(date),
+          label: formatDate(date),
+          cents,
+          isFuture: date > today,
+          intensity:
+            cents > 0 && maxCents > 0 ? 0.3 + 0.7 * (cents / maxCents) : 0,
+        };
+      })
   );
 
   return (
     <div className="space-y-2">
-      {/* Una columna por semana (grid-cols-12) que ocupa todo el ancho; los
-          cuadros son cuadrados (aspect-square) y se estiran de borde a borde. */}
-      <div className="grid grid-cols-12 gap-1">
-        {weeks.map((week, i) => (
-          <div key={i} className="flex flex-col gap-1">
-            {week.map(({ date, cents, isFuture }) => {
-              if (isFuture) {
-                return (
-                  <div
-                    key={date.toISOString()}
-                    className="aspect-square rounded-[18%]"
-                  />
-                );
-              }
-              const intensity =
-                cents > 0 && maxCents > 0 ? 0.3 + 0.7 * (cents / maxCents) : 0;
-              return (
-                <div
-                  key={date.toISOString()}
-                  title={`${formatDate(date)} · ${
-                    cents > 0 ? formatCurrency(cents / 100) : "Sin registro"
-                  }`}
-                  className={
-                    cents > 0
-                      ? "bg-primary aspect-square rounded-[18%]"
-                      : "bg-muted aspect-square rounded-[18%]"
-                  }
-                  style={cents > 0 ? { opacity: intensity } : undefined}
-                />
-              );
-            })}
-          </div>
-        ))}
-      </div>
+      <ActivityCalendarGrid weeks={weeks} />
       <p className="text-muted-foreground text-xs">
-        Últimas {WEEKS} semanas · más oscuro = más ganancia · pasa el cursor
-        para ver el día.
+        Últimas {WEEKS} semanas · más oscuro = más ganancia · toca un día para
+        ver su ganancia.
       </p>
     </div>
   );
